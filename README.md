@@ -421,6 +421,37 @@ pricegrid/
 
 ---
 
+## v1 — Complete
+
+PriceGrid v1 is feature-complete. All five sprints are shipped:
+
+- Auth, roles, and JWT
+- Goods, vendors, markets, and price submission
+- Spike detection, pub/sub alerts, and threshold configuration
+- Price history, cross-market comparison, and time-windowed trends
+- Full SQLModel migration, unified schemas, and pyright type checking
+
+The system is self-contained, fully tested (unit + integration), and runs end-to-end with a single `docker-compose up --build`.
+
+---
+
+## What v2 Could Look Like
+
+These are the natural next layers if this were a production system:
+
+| Feature | What it adds |
+| ------- | ------------ |
+| WebSocket push | Real-time price updates streamed to clients without polling |
+| Alert delivery | Email or webhook notifications when a spike fires, not just a DB record |
+| Bulk price submission | `POST /prices/bulk` for vendors submitting multiple prices in one request |
+| Rate limiting | Per-vendor submission throttle to prevent price flooding |
+| Vendor reputation | Track submission accuracy over time — flag vendors whose prices consistently deviate |
+| Price forecasting | Simple moving-average or ARIMA forecast endpoint on top of the existing trend data |
+| Multi-currency normalisation | Store an exchange rate snapshot at submission time so comparisons across currencies are meaningful |
+| Read-only public API | Unauthenticated access to current prices and comparisons for open-data consumers |
+
+---
+
 ## Author
 
 > **Miracle Apata**
