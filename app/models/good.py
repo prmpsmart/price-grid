@@ -1,15 +1,10 @@
-from sqlalchemy import String, Text
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlmodel import Field
 
-from app.core.db.database import BaseModel
+from ..core.db.base_model import BaseModel
 
 
-class Good(BaseModel):
-    __tablename__ = "goods"
-
-    name: Mapped[str] = mapped_column(
-        String(255), nullable=False, unique=True, index=True
-    )
-    category: Mapped[str] = mapped_column(String(100), nullable=False)
-    unit: Mapped[str] = mapped_column(String(50), nullable=False)
-    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+class Good(BaseModel, table=True):
+    name: str = Field(max_length=255, nullable=False, unique=True, index=True)
+    category: str = Field(max_length=100, nullable=False)
+    unit: str = Field(max_length=50, nullable=False)
+    description: str | None = Field(default=None, max_length=65535, nullable=True)

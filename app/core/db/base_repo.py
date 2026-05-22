@@ -2,12 +2,11 @@ import base64
 import binascii
 import json
 from datetime import datetime
-from typing import cast
 
-from sqlalchemy import Select, delete, select
-from sqlalchemy.engine import CursorResult
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.attributes import InstrumentedAttribute
+from sqlmodel import col, delete, select
+from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlmodel.sql.expression import SelectOfScalar
 
 from .base_model import BaseModel
 
@@ -32,9 +31,9 @@ class BaseRepository[T: BaseModel]:
         return obj
 
     async def get_by_ids(self, session: AsyncSession, ids: list[str]) -> list[T]:
-        stmt = select(self.model).where(self.model.id.in_(ids))
-        result = await session.execute(stmt)
-        return list(result.scalars().all())
+        stmt = select(self.model).where(col(self.model.id).in_(ids))
+        result = await session.exec(stmt)
+        return list(result.all())
 
     def add(self, session: AsyncSession, instance: T) -> None:
         session.add(instance)
@@ -71,43 +70,45 @@ class BaseRepository[T: BaseModel]:
         stmt = select(self.model)
         for field, value in filters.items():
             stmt = stmt.where(getattr(self.model, field) == value)
-        result = await session.execute(stmt)
-        return result.scalar_one_or_none()
+        result = await session.exec(stmt)
+        return result.first()
 
     async def get_all_by(self, session: AsyncSession, **filters) -> list[T]:
         stmt = select(self.model)
         for field, value in filters.items():
             stmt = stmt.where(getattr(self.model, field) == value)
-        result = await session.execute(stmt)
-        return list(result.scalars().all())
+        result = await session.exec(stmt)
+        return list(result.all())
 
     async def delete_by(self, session: AsyncSession, **filters) -> int:
         stmt = delete(self.model)
         for field, value in filters.items():
             stmt = stmt.where(getattr(self.model, field) == value)
-        result = await session.execute(stmt)
-        return cast(CursorResult, result).rowcount
+
+        result = await session.exec(stmt)
+        return result.rowcount or 0
 
     async def delete_by_id(self, session: AsyncSession, id: str) -> bool:
-        stmt = delete(self.model).where(self.model.id == id)
-        result = await session.execute(stmt)
-        return cast(CursorResult, result).rowcount > 0
+        stmt = delete(self.model).where(col(self.model.id) == id)
+        result = await session.exec(stmt)
+        rowcount = result.rowcount or 0
+        return rowcount > 0
 
     async def paginate_offset(
         self,
         session: AsyncSession,
         *,
-        stmt: Select,
+        stmt: SelectOfScalar,
         page: int = 1,
         limit: int = DEFAULT_PAGINATED_LIMIT,
     ) -> tuple[list[T], int]:
-        from sqlalchemy import func
+        from sqlmodel import func
 
         count_stmt = select(func.count()).select_from(stmt.subquery())
         total = (await session.scalar(count_stmt)) or 0
         stmt = stmt.offset((page - 1) * limit).limit(limit)
-        result = await session.execute(stmt)
-        return list(result.scalars().all()), total
+        result = await session.exec(stmt)
+        return list(result.all()), total
 
     def encode_timestamp_cursor(self, timestamp: datetime, id: str) -> str:
         payload = {"timestamp": timestamp.isoformat(), "id": id}
@@ -133,13 +134,13 @@ class BaseRepository[T: BaseModel]:
 
     def apply_timestamp_cursor_pagination(
         self,
-        stmt: Select,
+        stmt: SelectOfScalar,
         *,
         timestamp_column: InstrumentedAttribute,
         encoded_cursor: str,
         descending: bool = True,
-    ) -> Select:
-        from sqlalchemy import and_, or_
+    ) -> SelectOfScalar:
+        from sqlmodel import and_, or_
 
         cursor_time, cursor_id = self.decode_timestamp_cursor(encoded_cursor)
         if not (cursor_time and cursor_id):
@@ -149,13 +150,15 @@ class BaseRepository[T: BaseModel]:
             return stmt.where(
                 or_(
                     timestamp_column < cursor_time,
-                    and_(timestamp_column == cursor_time, self.model.id < cursor_id),
+                    and_(
+                        timestamp_column == cursor_time, col(self.model.id) < cursor_id
+                    ),
                 )
             )
         return stmt.where(
             or_(
                 timestamp_column > cursor_time,
-                and_(timestamp_column == cursor_time, self.model.id > cursor_id),
+                and_(timestamp_column == cursor_time, col(self.model.id) > cursor_id),
             )
         )
 
@@ -163,12 +166,12 @@ class BaseRepository[T: BaseModel]:
         self,
         session: AsyncSession,
         *,
-        stmt: Select,
+        stmt: SelectOfScalar,
         timestamp_column: InstrumentedAttribute,
         limit: int = DEFAULT_PAGINATED_LIMIT,
         encoded_cursor: str | None = None,
     ) -> tuple[list[T], str | None]:
-        from sqlalchemy import desc
+        from sqlmodel import desc
 
         stmt = stmt.order_by(desc(timestamp_column), desc(self.model.id)).limit(
             limit + 1
@@ -181,8 +184,8 @@ class BaseRepository[T: BaseModel]:
                 encoded_cursor=encoded_cursor,
             )
 
-        result = await session.execute(stmt)
-        items = list(result.scalars().all())
+        result = await session.exec(stmt)
+        items = list(result.all())
         has_more = len(items) > limit
 
         if has_more:
@@ -192,7 +195,7 @@ class BaseRepository[T: BaseModel]:
         if has_more and items:
             last = items[-1]
             next_cursor = self.encode_timestamp_cursor(
-                getattr(last, timestamp_column.key), last.id
+                getattr(last, timestamp_column.key), str(last.id)
             )
 
         return items, next_cursor

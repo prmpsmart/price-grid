@@ -47,7 +47,7 @@ async def test_vendor_can_submit_price(
     )
     assert resp.status_code == 201
     data = resp.json()
-    assert data["price"] == 38000.0
+    assert float(data["price"]) == 38000.0
     assert data["currency"] == "NGN"
 
 
@@ -146,7 +146,10 @@ async def test_get_current_price_with_params(
 
 
 async def test_current_price_is_cached(
-    client: AsyncClient, submitted_price: dict, a_good: dict, a_market: dict
+    client: AsyncClient,
+    submitted_price: dict,
+    a_good: dict,
+    a_market: dict,
 ):
     url = f"/api/v1/prices/current?good_id={a_good['id']}&market_id={a_market['id']}"
     r1 = await client.get(url)

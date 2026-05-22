@@ -5,7 +5,7 @@ import pytest
 from uuid_extensions import uuid7
 
 from app.models.user import User, UserRole
-from app.schemas.auth import UserRegister
+from app.schemas import UserRegister
 from app.services.auth_service import AuthService
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────

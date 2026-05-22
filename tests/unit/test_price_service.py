@@ -13,7 +13,7 @@ from app.models.user import User, UserRole
 from app.models.vendor import Vendor
 from app.repositories.price_repo import PriceRepository
 from app.repositories.vendor_repo import VendorRepository
-from app.schemas.prices import PriceCreate
+from app.schemas import PriceCreate
 from app.services.price_service import PriceService
 
 _NOW = datetime(2026, 5, 22, 10, 0, 0, tzinfo=UTC)
@@ -26,11 +26,11 @@ def _get_uuid7(str_uuid: Any) -> UUID7:
 
 
 def _make_user(role: UserRole) -> User:
-    return User(id=uuid7(), email="u@test.com", hashed_password="x", role=role)
+    return User(email="u@test.com", hashed_password="x", role=role)
 
 
 def _make_vendor(user_id) -> Vendor:
-    return Vendor(id=uuid7(), name="V", user_id=user_id)
+    return Vendor(name="V", user_id=user_id)
 
 
 def _make_payload(vendor_id: UUID7) -> PriceCreate:
@@ -47,7 +47,6 @@ def _make_record(
     payload: PriceCreate, price: Decimal = Decimal("42000")
 ) -> PriceRecord:
     return PriceRecord(
-        id=uuid7(),
         good_id=payload.good_id,
         vendor_id=payload.vendor_id,
         market_id=payload.market_id,
@@ -55,6 +54,7 @@ def _make_record(
         currency="NGN",
         created_at=_NOW,
         updated_at=_NOW,
+        submitted_at=_NOW,
     )
 
 

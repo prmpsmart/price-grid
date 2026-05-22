@@ -7,7 +7,7 @@ from uuid_extensions import uuid7
 
 from app.models.user import User, UserRole
 from app.repositories.alert_repo import AlertRepository
-from app.schemas.alerts import ThresholdSet
+from app.schemas import ThresholdSet
 from app.services.alert_service import AlertService
 
 uuid7_adapter = TypeAdapter(UUID7)
@@ -18,7 +18,7 @@ def _get_uuid7(str_uuid: Any) -> UUID7:
 
 
 def _make_user(role: UserRole) -> User:
-    return User(id=uuid7(), email="u@test.com", hashed_password="x", role=role)
+    return User(email="u@test.com", hashed_password="x", role=role)
 
 
 def _make_threshold_payload() -> ThresholdSet:

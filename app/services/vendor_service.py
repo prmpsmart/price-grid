@@ -1,10 +1,9 @@
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel.ext.asyncio.session import AsyncSession
 
-from app.models.user import User, UserRole
-from app.models.vendor import Vendor
-from app.repositories.vendor_repo import VendorRepository
-from app.schemas.base import PaginatedResponse
-from app.schemas.vendors import VendorCreate, VendorOut
+from ..models.user import User, UserRole
+from ..models.vendor import Vendor
+from ..repositories.vendor_repo import VendorRepository
+from ..schemas import PaginatedResponse, VendorCreate
 
 
 class VendorService:
@@ -14,10 +13,10 @@ class VendorService:
 
     async def list_paginated(
         self, page: int = 1, limit: int = 20
-    ) -> PaginatedResponse[VendorOut]:
+    ) -> PaginatedResponse[Vendor]:
         items, total = await self.repo.list_all(self.session, page=page, limit=limit)
         return PaginatedResponse(
-            items=[VendorOut.model_validate(v) for v in items],
+            items=items,
             total=total,
             page=page,
             limit=limit,
@@ -28,7 +27,7 @@ class VendorService:
             raise PermissionError(
                 "Only vendors and admins can register a vendor profile"
             )
-        if await self.repo.get_by_user_id(self.session, current_user.id):
+        if await self.repo.get_by_user_id(self.session, str(current_user.id)):
             raise ValueError("A vendor profile already exists for this account")
         return await self.repo.create(
             self.session,

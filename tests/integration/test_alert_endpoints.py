@@ -1,10 +1,11 @@
+import datetime
 import uuid
 from decimal import Decimal
 
 import pytest
 import pytest_asyncio
 from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel.ext.asyncio.session import AsyncSession
 from uuid_extensions import uuid7
 
 from app.models.alert import PriceAlert
@@ -24,6 +25,7 @@ async def an_alert(
         delta_pct=Decimal("25.0000"),
         threshold_pct=Decimal("20.0000"),
         currency="NGN",
+        triggered_at=datetime.datetime.now(datetime.UTC),
     )
     db_session.add(alert)
     await db_session.flush()

@@ -3,16 +3,15 @@ from datetime import datetime
 from decimal import Decimal
 
 import redis.asyncio as aioredis
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel.ext.asyncio.session import AsyncSession
 
-from app.core.settings import settings
-from app.events.publisher import get_spike_threshold, publish_spike_event
-from app.models.price import PriceRecord
-from app.models.user import User, UserRole
-from app.repositories.price_repo import PriceRepository
-from app.repositories.vendor_repo import VendorRepository
-from app.schemas.base import PaginatedResponse
-from app.schemas.prices import PriceCreate, PriceOut
+from ..core.settings import settings
+from ..events.publisher import get_spike_threshold, publish_spike_event
+from ..models.price import PriceRecord
+from ..models.user import User, UserRole
+from ..repositories.price_repo import PriceRepository
+from ..repositories.vendor_repo import VendorRepository
+from ..schemas import PaginatedResponse, PriceCreate
 
 
 class PriceService:
@@ -81,30 +80,30 @@ class PriceService:
 
     async def get_current(
         self, good_id: str, market_id: str, redis: aioredis.Redis
-    ) -> PriceOut | None:
+    ) -> PriceRecord | None:
         cache_key = f"price:current:{good_id}:{market_id}"
         cached = await redis.get(cache_key)
         if cached:
-            return PriceOut(**json.loads(cached))
+            data = json.loads(cached)
+            return PriceRecord(**data)
         record = await self.repo.get_latest(self.session, good_id, market_id)
         if not record:
             return None
-        result = PriceOut.model_validate(record)
         await redis.setex(
             cache_key,
             settings.CACHE_TTL_SECONDS,
-            json.dumps(result.model_dump(mode="json")),
+            record.model_dump_json(),
         )
-        return result
+        return record
 
     async def list_current_paginated(
         self, page: int = 1, limit: int = 20
-    ) -> PaginatedResponse[PriceOut]:
+    ) -> PaginatedResponse[PriceRecord]:
         items, total = await self.repo.list_current(
             self.session, page=page, limit=limit
         )
         return PaginatedResponse(
-            items=[PriceOut.model_validate(r) for r in items],
+            items=items,
             total=total,
             page=page,
             limit=limit,
@@ -118,7 +117,7 @@ class PriceService:
         date_to: datetime | None,
         page: int = 1,
         limit: int = 20,
-    ) -> PaginatedResponse[PriceOut]:
+    ) -> PaginatedResponse[PriceRecord]:
         items, total = await self.repo.list_filtered(
             self.session,
             good_id,
@@ -129,7 +128,7 @@ class PriceService:
             limit=limit,
         )
         return PaginatedResponse(
-            items=[PriceOut.model_validate(r) for r in items],
+            items=items,
             total=total,
             page=page,
             limit=limit,

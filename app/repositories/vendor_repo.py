@@ -1,8 +1,8 @@
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel import select
+from sqlmodel.ext.asyncio.session import AsyncSession
 
-from app.core.db.base_repo import BaseRepository
-from app.models.vendor import Vendor
+from ..core.db.base_repo import BaseRepository
+from ..models.vendor import Vendor
 
 
 class VendorRepository(BaseRepository[Vendor]):

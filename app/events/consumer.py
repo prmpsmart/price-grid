@@ -4,10 +4,10 @@ from decimal import Decimal
 
 from loguru import logger
 
-from app.core.cache.redis import create_redis_client
-from app.core.db.database import db_session
-from app.events.publisher import SPIKE_CHANNEL
-from app.repositories.alert_repo import AlertRepository
+from ..core.cache.redis import create_redis_client
+from ..core.db.database import db_session
+from ..events.publisher import SPIKE_CHANNEL
+from ..repositories.alert_repo import AlertRepository
 
 
 async def run_spike_consumer() -> None:

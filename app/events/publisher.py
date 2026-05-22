@@ -2,7 +2,7 @@ import json
 
 import redis.asyncio as aioredis
 
-from app.core.settings import settings
+from ..core.settings import settings
 
 SPIKE_CHANNEL = "price:spikes"
 _THRESHOLD_KEY = "spike:threshold:{good_id}:{market_id}"

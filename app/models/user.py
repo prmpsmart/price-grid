@@ -1,10 +1,8 @@
 import enum
 
-from sqlalchemy import Enum as SAEnum
-from sqlalchemy import String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlmodel import Field
 
-from app.core.db.database import BaseModel
+from ..core.db.base_model import BaseModel
 
 
 class UserRole(enum.StrEnum):
@@ -13,13 +11,7 @@ class UserRole(enum.StrEnum):
     viewer = "viewer"
 
 
-class User(BaseModel):
-    __tablename__ = "users"
-
-    email: Mapped[str] = mapped_column(
-        String(255), unique=True, nullable=False, index=True
-    )
-    hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
-    role: Mapped[UserRole] = mapped_column(
-        SAEnum(UserRole, name="userrole"), nullable=False, default=UserRole.viewer
-    )
+class User(BaseModel, table=True):
+    email: str = Field(max_length=255, unique=True, nullable=False, index=True)
+    hashed_password: str = Field(max_length=255, nullable=False)
+    role: UserRole = Field(default=UserRole.viewer, nullable=False)

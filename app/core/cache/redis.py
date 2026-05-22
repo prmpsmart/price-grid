@@ -2,8 +2,8 @@ import redis.asyncio as aioredis
 from loguru import logger
 from redis.asyncio import Redis
 
-from app.core.settings import settings
-from app.core.utils.retry import with_retry
+from ...core.settings import settings
+from ...core.utils.retry import with_retry
 
 _redis_client: Redis | None = None
 

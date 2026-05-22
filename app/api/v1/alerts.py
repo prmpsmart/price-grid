@@ -2,16 +2,15 @@ import uuid
 
 import redis.asyncio as aioredis
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel.ext.asyncio.session import AsyncSession
 
-from app.api.v1.auth import get_current_user
-from app.core.cache.redis import get_redis
-from app.core.db.database import get_db
-from app.models.user import User
-from app.repositories.alert_repo import AlertRepository
-from app.schemas.alerts import AlertOut, ThresholdSet
-from app.schemas.base import PaginatedResponse
-from app.services.alert_service import AlertService
+from ...api.v1.auth import get_current_user
+from ...core.cache.redis import get_redis
+from ...core.db.database import get_db
+from ...models import PriceAlert, User
+from ...repositories.alert_repo import AlertRepository
+from ...schemas import PaginatedResponse, ThresholdSet
+from ...services.alert_service import AlertService
 
 router = APIRouter(prefix="/alerts", tags=["alerts"])
 _repo = AlertRepository()
@@ -21,7 +20,7 @@ def _get_service(db: AsyncSession = Depends(get_db)) -> AlertService:
     return AlertService(_repo, db)
 
 
-@router.get("", response_model=PaginatedResponse[AlertOut])
+@router.get("", response_model=PaginatedResponse[PriceAlert])
 async def list_alerts(
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
@@ -51,7 +50,7 @@ async def set_spike_threshold(
         ) from exc
 
 
-@router.get("/{good_id}", response_model=PaginatedResponse[AlertOut])
+@router.get("/{good_id}", response_model=PaginatedResponse[PriceAlert])
 async def list_alerts_by_good(
     good_id: uuid.UUID,
     page: int = Query(1, ge=1),

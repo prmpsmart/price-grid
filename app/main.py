@@ -4,16 +4,15 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from loguru import logger
 
-from app.api.v1.alerts import router as alerts_router
-from app.api.v1.auth import router as auth_router
-from app.api.v1.goods import router as goods_router
-from app.api.v1.markets import router as markets_router
-from app.api.v1.prices import router as prices_router
-from app.api.v1.vendors import router as vendors_router
-from app.events.consumer import run_spike_consumer
-
+from .api.v1.alerts import router as alerts_router
+from .api.v1.auth import router as auth_router
+from .api.v1.goods import router as goods_router
+from .api.v1.markets import router as markets_router
+from .api.v1.prices import router as prices_router
+from .api.v1.vendors import router as vendors_router
 from .core.cache.redis import close_redis_connection, verify_redis_connection
 from .core.db.database import dispose_engine, verify_database_connection
+from .events.consumer import run_spike_consumer
 
 
 @asynccontextmanager

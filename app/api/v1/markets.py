@@ -1,13 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel.ext.asyncio.session import AsyncSession
 
-from app.api.v1.auth import get_current_user
-from app.core.db.database import get_db
-from app.models.user import User
-from app.repositories.market_repo import MarketRepository
-from app.schemas.base import PaginatedResponse
-from app.schemas.markets import MarketCreate, MarketOut
-from app.services.market_service import MarketService
+from ...api.v1.auth import get_current_user
+from ...core.db import get_db
+from ...models import Market, User
+from ...repositories.market_repo import MarketRepository
+from ...schemas import MarketCreate, PaginatedResponse
+from ...services.market_service import MarketService
 
 router = APIRouter(prefix="/markets", tags=["markets"])
 _repo = MarketRepository()
@@ -17,7 +16,7 @@ def _get_service(db: AsyncSession = Depends(get_db)) -> MarketService:
     return MarketService(_repo, db)
 
 
-@router.get("", response_model=PaginatedResponse[MarketOut])
+@router.get("", response_model=PaginatedResponse[Market])
 async def list_markets(
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
@@ -26,7 +25,7 @@ async def list_markets(
     return await service.list_paginated(page, limit)
 
 
-@router.post("", response_model=MarketOut, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=Market, status_code=status.HTTP_201_CREATED)
 async def create_market(
     payload: MarketCreate,
     current_user: User = Depends(get_current_user),

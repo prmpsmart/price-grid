@@ -7,12 +7,12 @@ import pytest_asyncio
 from alembic.config import Config
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
-from uuid_extensions import uuid7
+from sqlmodel.ext.asyncio.session import AsyncSession
 
 import app.core.cache.redis as redis_module
-import app.models  # noqa: F401 — registers all models with Base.metadata
+import app.models  # noqa: F401 — registers all models with SQLModel.metadata
 from alembic import command
 from app.core.cache.redis import create_redis_client, get_redis
 from app.core.db.database import get_async_db_url, get_db
@@ -68,8 +68,17 @@ async def db_session() -> AsyncGenerator[AsyncSession]:
     engine = create_async_engine(get_async_db_url(), poolclass=NullPool)
     connection = await engine.connect()
     transaction = await connection.begin()
-    session = async_sessionmaker(bind=connection, expire_on_commit=False)()
+
+    # Use SQLAlchemy's async_sessionmaker but tell it to generate SQLModel AsyncSessions
+    session_factory = async_sessionmaker(
+        bind=connection,
+        class_=AsyncSession,
+        expire_on_commit=False,
+    )
+    session = session_factory()
+
     yield session
+
     await session.close()
     await transaction.rollback()
     await connection.close()
@@ -122,10 +131,11 @@ async def auth_service(db_session: AsyncSession):
 @pytest.fixture
 async def test_user(db_session: AsyncSession, auth_service: AuthService) -> User:
     u = User(
-        id=str(uuid7()),
         email="test@example.com",
         role=UserRole.viewer,
-        password_hash=auth_service.hash_password("testUserPassword#"),
+        # Updated to 'hashed_password' to reflect your
+        # updated SQLModel User model field name
+        hashed_password=auth_service.hash_password("testUserPassword#"),
     )
     db_session.add(u)
     await db_session.flush()

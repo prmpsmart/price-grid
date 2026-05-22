@@ -1,11 +1,12 @@
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
-from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import func
+from sqlmodel import col, select
+from sqlmodel.ext.asyncio.session import AsyncSession
 
-from app.core.db.base_repo import BaseRepository
-from app.models.price import PriceRecord
+from ..core.db.base_repo import BaseRepository
+from ..models.price import PriceRecord
 
 
 class PriceRepository(BaseRepository[PriceRecord]):
@@ -14,13 +15,13 @@ class PriceRepository(BaseRepository[PriceRecord]):
     async def get_latest(
         self, session: AsyncSession, good_id: str, market_id: str
     ) -> PriceRecord | None:
-        result = await session.execute(
+        result = await session.exec(
             select(PriceRecord)
             .where(PriceRecord.good_id == good_id, PriceRecord.market_id == market_id)
-            .order_by(PriceRecord.submitted_at.desc())
+            .order_by(col(PriceRecord.submitted_at).desc())
             .limit(1)
         )
-        return result.scalar_one_or_none()
+        return result.first()
 
     async def list_current(
         self, session: AsyncSession, *, page: int, limit: int
@@ -32,14 +33,14 @@ class PriceRepository(BaseRepository[PriceRecord]):
                 PriceRecord.market_id,
                 func.max(PriceRecord.submitted_at).label("max_ts"),
             )
-            .group_by(PriceRecord.good_id, PriceRecord.market_id)
+            .group_by(col(PriceRecord.good_id), col(PriceRecord.market_id))
             .subquery()
         )
         stmt = select(PriceRecord).join(
             latest_subq,
-            (PriceRecord.good_id == latest_subq.c.good_id)
-            & (PriceRecord.market_id == latest_subq.c.market_id)
-            & (PriceRecord.submitted_at == latest_subq.c.max_ts),
+            (col(PriceRecord.good_id) == latest_subq.c.good_id)
+            & (col(PriceRecord.market_id) == latest_subq.c.market_id)
+            & (col(PriceRecord.submitted_at) == latest_subq.c.max_ts),
         )
         return await self.paginate_offset(session, stmt=stmt, page=page, limit=limit)
 
@@ -54,7 +55,7 @@ class PriceRepository(BaseRepository[PriceRecord]):
         page: int,
         limit: int,
     ) -> tuple[list[PriceRecord], int]:
-        stmt = select(PriceRecord).order_by(PriceRecord.submitted_at.desc())
+        stmt = select(PriceRecord).order_by(col(PriceRecord.submitted_at).desc())
         if good_id:
             stmt = stmt.where(PriceRecord.good_id == good_id)
         if market_id:
@@ -70,11 +71,11 @@ class PriceRepository(BaseRepository[PriceRecord]):
     ) -> Decimal | None:
         """30-day rolling average — used by spike detection (Sprint 3)."""
         cutoff = datetime.now(UTC) - timedelta(days=days)
-        result = await session.execute(
+        result = await session.exec(
             select(func.avg(PriceRecord.price)).where(
                 PriceRecord.good_id == good_id,
                 PriceRecord.market_id == market_id,
                 PriceRecord.submitted_at >= cutoff,
             )
         )
-        return result.scalar_one_or_none()
+        return result.first()

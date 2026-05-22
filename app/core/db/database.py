@@ -6,14 +6,13 @@ from loguru import logger
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
-    AsyncSession,
     async_sessionmaker,
     create_async_engine,
 )
 from sqlalchemy.pool import NullPool
+from sqlmodel.ext.asyncio.session import AsyncSession
 
-from app.core.settings import settings
-
+from ..settings import settings
 from ..types.base import Environment
 from ..utils.retry import with_retry
 from .base_model import BaseModel

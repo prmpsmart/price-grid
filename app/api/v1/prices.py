@@ -3,17 +3,16 @@ from datetime import datetime
 
 import redis.asyncio as aioredis
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel.ext.asyncio.session import AsyncSession
 
-from app.api.v1.auth import get_current_user
-from app.core.cache.redis import get_redis
-from app.core.db.database import get_db
-from app.models.user import User
-from app.repositories.price_repo import PriceRepository
-from app.repositories.vendor_repo import VendorRepository
-from app.schemas.base import PaginatedResponse
-from app.schemas.prices import PriceCreate, PriceOut
-from app.services.price_service import PriceService
+from ...api.v1.auth import get_current_user
+from ...core.cache.redis import get_redis
+from ...core.db.database import get_db
+from ...models import PriceRecord, User
+from ...repositories.price_repo import PriceRepository
+from ...repositories.vendor_repo import VendorRepository
+from ...schemas import PaginatedResponse, PriceCreate
+from ...services.price_service import PriceService
 
 router = APIRouter(prefix="/prices", tags=["prices"])
 
@@ -26,7 +25,7 @@ def _get_service(db: AsyncSession = Depends(get_db)) -> PriceService:
     )
 
 
-@router.post("", response_model=PriceOut, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=PriceRecord, status_code=status.HTTP_201_CREATED)
 async def submit_price(
     payload: PriceCreate,
     current_user: User = Depends(get_current_user),
@@ -42,7 +41,7 @@ async def submit_price(
         ) from exc
 
 
-@router.get("/current", response_model=PaginatedResponse[PriceOut])
+@router.get("/current", response_model=PaginatedResponse[PriceRecord])
 async def get_current_prices(
     good_id: uuid.UUID | None = Query(None),
     market_id: uuid.UUID | None = Query(None),
@@ -58,7 +57,7 @@ async def get_current_prices(
     return await service.list_current_paginated(page, limit)
 
 
-@router.get("", response_model=PaginatedResponse[PriceOut])
+@router.get("", response_model=PaginatedResponse[PriceRecord])
 async def list_prices(
     good_id: uuid.UUID | None = Query(None),
     market_id: uuid.UUID | None = Query(None),

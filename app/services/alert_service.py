@@ -1,10 +1,9 @@
 import redis.asyncio as aioredis
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel.ext.asyncio.session import AsyncSession
 
-from app.models.user import User, UserRole
-from app.repositories.alert_repo import AlertRepository
-from app.schemas.alerts import AlertOut, ThresholdSet
-from app.schemas.base import PaginatedResponse
+from ..models import PriceAlert, User, UserRole
+from ..repositories.alert_repo import AlertRepository
+from ..schemas import PaginatedResponse, ThresholdSet
 
 _THRESHOLD_KEY = "spike:threshold:{good_id}:{market_id}"
 
@@ -16,12 +15,12 @@ class AlertService:
 
     async def list_all(
         self, current_user: User, page: int = 1, limit: int = 20
-    ) -> PaginatedResponse[AlertOut]:
+    ) -> PaginatedResponse[PriceAlert]:
         if current_user.role != UserRole.admin:
             raise PermissionError("Only admins can view all alerts")
         items, total = await self.repo.list_all(self.session, page=page, limit=limit)
         return PaginatedResponse(
-            items=[AlertOut.model_validate(a) for a in items],
+            items=items,
             total=total,
             page=page,
             limit=limit,
@@ -29,12 +28,12 @@ class AlertService:
 
     async def list_by_good(
         self, good_id: str, page: int = 1, limit: int = 20
-    ) -> PaginatedResponse[AlertOut]:
+    ) -> PaginatedResponse[PriceAlert]:
         items, total = await self.repo.list_by_good(
             self.session, good_id, page=page, limit=limit
         )
         return PaginatedResponse(
-            items=[AlertOut.model_validate(a) for a in items],
+            items=items,
             total=total,
             page=page,
             limit=limit,

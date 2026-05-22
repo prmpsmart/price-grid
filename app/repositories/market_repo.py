@@ -1,8 +1,8 @@
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel import select
+from sqlmodel.ext.asyncio.session import AsyncSession
 
-from app.core.db.base_repo import BaseRepository
-from app.models.market import Market
+from ..core.db.base_repo import BaseRepository
+from ..models.market import Market
 
 
 class MarketRepository(BaseRepository[Market]):

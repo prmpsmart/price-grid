@@ -85,16 +85,16 @@ test-up: ## Start all services including the ephemeral test database
 	$(COMPOSE_TEST) up -d
 
 test: test-up ## Run all tests (spins up test DB automatically)
-	$(EXEC) pytest -v
+	$(EXEC) pytest -vs
 
 test-unit: ## Run unit tests only (no test database needed)
-	$(EXEC) pytest tests/unit -v
+	$(EXEC) pytest tests/unit -vs
 
 test-integration: test-up ## Run integration tests (spins up test DB automatically)
-	$(EXEC) pytest tests/integration -v
+	$(EXEC) pytest tests/integration -vs
 
 test-file: ## Run a specific test file (usage: make test-file f=tests/unit/test_price_service.py)
-	$(EXEC) pytest $(f) -v
+	$(EXEC) pytest $(f) -vs
 
 coverage: test-up ## Run all tests with coverage report (spins up test DB automatically)
 	$(EXEC) pytest --cov=app --cov-report=term-missing --cov-report=html
@@ -106,17 +106,20 @@ coverage-html: ## Open HTML coverage report (macOS)
 lint: ## Run ruff linter
 	$(EXEC) ruff check app tests
 
-lint-fix: ## Run ruff linter and auto-fix issues
+lint-fix: ## Run ruff linter, sort imports, and auto-fix issues
 	$(EXEC) ruff check app tests --fix
+	$(EXEC) ruff check app tests --select I --fix
 
-format: ## Format code with ruff formatter
+format: ## Format code and organize imports with ruff
 	$(EXEC) ruff format app tests
+	$(EXEC) ruff check app tests --select I --fix
 
 format-check: ## Check formatting without applying changes
 	$(EXEC) ruff format app tests --check
+	$(EXEC) ruff check app tests --select I --check
 
-typecheck: ## Run mypy type checker
-	$(EXEC) mypy app
+typecheck: ## Run pyright type checker (configured in pyproject.toml)
+	$(EXEC) pyright
 
 # ── Dependencies (local only — updates pyproject.toml + uv.lock, then rebuild) ─
 # These are the only commands that run on your host machine, not in Docker.
@@ -161,3 +164,25 @@ clean: ## Remove Python cache files
 	echo "Cleaned."
 
 clean-all: down-v clean ## Stop services, wipe volumes, remove cache files
+
+# ── Database Reset ────────────────────────────────────────────────────────────
+db-reset-migrations: ## Rollback migrations to base and upgrade back to head
+	$(EXEC) alembic downgrade base
+	$(EXEC) alembic upgrade head
+
+db-wipe-volume: ## Completely destroy the database containers, volumes, and rebuild fresh
+	docker-compose down -v
+	docker-compose up -d --build
+	@echo "Waiting for DB to start up cleanly..."
+	sleep 3
+	$(MAKE) migrate
+
+db-clear-data: ## Truncate all table rows instantly while keeping schema structures
+	docker-compose exec pricegrid-db psql -U pricegrid -d pricegrid -c \
+	"TRUNCATE TABLE good, market, pricerecord, user, vendor CASCADE;"
+
+db-fresh-reset: ## Clear out everything (schemas, data, tables) but keep the physical volume
+	docker-compose exec pricegrid-db psql -U pricegrid -d pricegrid -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+	@echo "Database completely emptied. Re-running migrations..."
+	$(MAKE) migrate-create
+	$(MAKE) migrate

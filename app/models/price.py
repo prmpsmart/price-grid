@@ -2,30 +2,23 @@ import uuid
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import UUID as SAUUID
-from sqlalchemy import DateTime, ForeignKey, Index, Numeric, String
-from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy.sql import func
+from sqlmodel import DateTime, Field, Index, func
 
-from app.core.db.database import BaseModel
+from ..core.db.base_model import BaseModel
 
 
-class PriceRecord(BaseModel):
-    __tablename__ = "price_records"
+class PriceRecord(BaseModel, table=True):
+    good_id: uuid.UUID = Field(foreign_key="good.id", nullable=False)
+    vendor_id: uuid.UUID = Field(foreign_key="vendor.id", nullable=False)
+    market_id: uuid.UUID = Field(foreign_key="market.id", nullable=False)
 
-    good_id: Mapped[uuid.UUID] = mapped_column(
-        SAUUID(as_uuid=True), ForeignKey("goods.id"), nullable=False
-    )
-    vendor_id: Mapped[uuid.UUID] = mapped_column(
-        SAUUID(as_uuid=True), ForeignKey("vendors.id"), nullable=False
-    )
-    market_id: Mapped[uuid.UUID] = mapped_column(
-        SAUUID(as_uuid=True), ForeignKey("markets.id"), nullable=False
-    )
-    price: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
-    currency: Mapped[str] = mapped_column(String(3), nullable=False)
-    submitted_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
+    price: Decimal = Field(max_digits=12, decimal_places=2, nullable=False)
+    currency: str = Field(max_length=3, nullable=False)
+
+    submitted_at: datetime = Field(
+        sa_column_kwargs={"server_default": func.now()},
+        sa_type=DateTime(timezone=True),  # type: ignore
+        nullable=False,
     )
 
     __table_args__ = (

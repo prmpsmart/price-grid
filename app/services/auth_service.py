@@ -1,12 +1,12 @@
 import bcrypt
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel.ext.asyncio.session import AsyncSession
 
-from app.core.types.token import TokenType
-from app.core.utils.exceptions import TokenExpiredError, TokenInvalidError
-from app.core.utils.token import token_codec
-from app.models.user import User
-from app.repositories.user_repo import UserRepository
-from app.schemas.auth import TokenData, UserRegister
+from ..core.types.token import TokenType
+from ..core.utils.exceptions import TokenExpiredError, TokenInvalidError
+from ..core.utils.token import token_codec
+from ..models.user import User
+from ..repositories.user_repo import UserRepository
+from ..schemas import TokenData, UserRegister
 
 
 class AuthService:
@@ -36,7 +36,10 @@ class AuthService:
             raise ValueError("Email already registered")
         hashed = self.hash_password(payload.password)
         return await self.repo.create(
-            self.session, email=payload.email, hashed_password=hashed, role=payload.role
+            self.session,
+            email=payload.email,
+            hashed_password=hashed,
+            role=payload.role,
         )
 
     async def login(self, email: str, password: str) -> str:
