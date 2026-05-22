@@ -11,6 +11,8 @@ from uuid_extensions import uuid7
 from app.models.price import PriceRecord
 from app.models.user import User, UserRole
 from app.models.vendor import Vendor
+from app.repositories.good_repo import GoodRepository
+from app.repositories.market_repo import MarketRepository
 from app.repositories.price_repo import PriceRepository
 from app.repositories.vendor_repo import VendorRepository
 from app.schemas import PriceCreate
@@ -69,8 +71,18 @@ def vendor_repo():
 
 
 @pytest.fixture
-def service(price_repo, vendor_repo, db_session):
-    return PriceService(price_repo, vendor_repo, db_session)
+def good_repo():
+    return GoodRepository()
+
+
+@pytest.fixture
+def market_repo():
+    return MarketRepository()
+
+
+@pytest.fixture
+def service(price_repo, vendor_repo, good_repo, market_repo, db_session):
+    return PriceService(price_repo, vendor_repo, good_repo, market_repo, db_session)
 
 
 # ── Role enforcement ──────────────────────────────────────────────────────────

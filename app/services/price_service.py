@@ -1,5 +1,5 @@
 import json
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
 import redis.asyncio as aioredis
@@ -9,9 +9,18 @@ from ..core.settings import settings
 from ..events.publisher import get_spike_threshold, publish_spike_event
 from ..models.price import PriceRecord
 from ..models.user import User, UserRole
+from ..repositories.good_repo import GoodRepository
+from ..repositories.market_repo import MarketRepository
 from ..repositories.price_repo import PriceRepository
 from ..repositories.vendor_repo import VendorRepository
-from ..schemas import PaginatedResponse, PriceCreate
+from ..schemas import (
+    CompareResponse,
+    MarketPriceEntry,
+    MarketTrendEntry,
+    PaginatedResponse,
+    PriceCreate,
+    TrendResponse,
+)
 
 
 class PriceService:
@@ -19,10 +28,14 @@ class PriceService:
         self,
         repo: PriceRepository,
         vendor_repo: VendorRepository,
+        good_repo: GoodRepository,
+        market_repo: MarketRepository,
         session: AsyncSession,
     ) -> None:
         self.repo = repo
         self.vendor_repo = vendor_repo
+        self.good_repo = good_repo
+        self.market_repo = market_repo
         self.session = session
 
     async def submit(
@@ -132,4 +145,88 @@ class PriceService:
             total=total,
             page=page,
             limit=limit,
+        )
+
+    async def history(
+        self, good_id: str, page: int = 1, limit: int = 20
+    ) -> PaginatedResponse[PriceRecord]:
+        await self.good_repo.exists_or_raise(
+            self.session, good_id, f"Good {good_id} not found"
+        )
+        items, total = await self.repo.list_filtered(
+            self.session,
+            good_id=good_id,
+            market_id=None,
+            date_from=None,
+            date_to=None,
+            page=page,
+            limit=limit,
+        )
+        return PaginatedResponse(items=items, total=total, page=page, limit=limit)
+
+    async def compare(self, good_id: str) -> CompareResponse:
+        good = await self.good_repo.exists_or_raise(
+            self.session, good_id, f"Good {good_id} not found"
+        )
+        records = await self.repo.list_current_for_good(self.session, good_id)
+        market_ids = [str(r.market_id) for r in records]
+        markets = {
+            str(m.id): m
+            for m in await self.market_repo.get_by_ids(self.session, market_ids)
+        }
+        entries = [
+            MarketPriceEntry(
+                market_id=r.market_id,
+                market=markets[str(r.market_id)].name,
+                city=markets[str(r.market_id)].city,
+                current_price=r.price,
+                currency=r.currency,
+                submitted_at=r.submitted_at,
+            )
+            for r in records
+            if str(r.market_id) in markets
+        ]
+        return CompareResponse(
+            good_id=good.id,
+            good=good.name,
+            unit=good.unit,
+            markets=entries,
+        )
+
+    @staticmethod
+    def _parse_window(window: str) -> int:
+        if window.endswith("d") and window[:-1].isdigit() and int(window[:-1]) > 0:
+            return int(window[:-1])
+        raise ValueError(f"Invalid window '{window}'. Use e.g. '7d' or '30d'")
+
+    async def trend(self, good_id: str, window: str) -> TrendResponse:
+        good = await self.good_repo.exists_or_raise(
+            self.session, good_id, f"Good {good_id} not found"
+        )
+        days = self._parse_window(window)
+        cutoff = datetime.now(UTC) - timedelta(days=days)
+        rows = await self.repo.get_market_trends(self.session, good_id, cutoff)
+        market_ids = [str(row.market_id) for row in rows]
+        markets = {
+            str(m.id): m
+            for m in await self.market_repo.get_by_ids(self.session, market_ids)
+        }
+        entries = [
+            MarketTrendEntry(
+                market_id=row.market_id,
+                market=markets[str(row.market_id)].name,
+                city=markets[str(row.market_id)].city,
+                avg_price=Decimal(str(row.avg_price)).quantize(Decimal("0.01")),
+                currency=row.currency,
+                data_points=row.data_points,
+            )
+            for row in rows
+            if str(row.market_id) in markets
+        ]
+        return TrendResponse(
+            good_id=good.id,
+            good=good.name,
+            unit=good.unit,
+            window=window,
+            markets=entries,
         )

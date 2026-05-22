@@ -9,9 +9,11 @@ from ...api.v1.auth import get_current_user
 from ...core.cache.redis import get_redis
 from ...core.db.database import get_db
 from ...models import PriceRecord, User
+from ...repositories.good_repo import GoodRepository
+from ...repositories.market_repo import MarketRepository
 from ...repositories.price_repo import PriceRepository
 from ...repositories.vendor_repo import VendorRepository
-from ...schemas import PaginatedResponse, PriceCreate
+from ...schemas import CompareResponse, PaginatedResponse, PriceCreate, TrendResponse
 from ...services.price_service import PriceService
 
 router = APIRouter(prefix="/prices", tags=["prices"])
@@ -21,6 +23,8 @@ def _get_service(db: AsyncSession = Depends(get_db)) -> PriceService:
     return PriceService(
         PriceRepository(),
         VendorRepository(),
+        GoodRepository(),
+        MarketRepository(),
         db,
     )
 
@@ -55,6 +59,54 @@ async def get_current_prices(
         items = [price] if price else []
         return PaginatedResponse(items=items, total=len(items), page=page, limit=limit)
     return await service.list_current_paginated(page, limit)
+
+
+@router.get("/history/{good_id}", response_model=PaginatedResponse[PriceRecord])
+async def price_history(
+    good_id: uuid.UUID,
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1, le=100),
+    service: PriceService = Depends(_get_service),
+):
+    try:
+        return await service.history(str(good_id), page, limit)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)
+        ) from exc
+
+
+@router.get("/compare", response_model=CompareResponse)
+async def compare_prices(
+    good_id: uuid.UUID = Query(...),
+    service: PriceService = Depends(_get_service),
+):
+    try:
+        return await service.compare(str(good_id))
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)
+        ) from exc
+
+
+@router.get("/trends", response_model=TrendResponse)
+async def price_trends(
+    good_id: uuid.UUID = Query(...),
+    window: str = Query("30d"),
+    service: PriceService = Depends(_get_service),
+):
+    try:
+        PriceService._parse_window(window)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
+        ) from exc
+    try:
+        return await service.trend(str(good_id), window)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)
+        ) from exc
 
 
 @router.get("", response_model=PaginatedResponse[PriceRecord])
