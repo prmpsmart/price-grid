@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Generic, TypeVar
+from typing import TypeVar
 
 from pydantic import UUID7, BaseModel, ConfigDict
 
@@ -14,7 +14,7 @@ class ModelSchema(BaseModel):
     updated_at: datetime
 
 
-class PaginatedResponse(BaseModel, Generic[T]):
+class PaginatedResponse[T: ModelSchema](BaseModel):
     items: list[T]
     total: int
     page: int

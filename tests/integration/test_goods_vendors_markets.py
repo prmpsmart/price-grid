@@ -36,7 +36,9 @@ class TestGoodsVendorsMarkets:
         resp = await client.get("/api/v1/goods")
         assert resp.status_code == 200
         data = resp.json()
-        assert "items" in data and "total" in data and "page" in data and "limit" in data
+        assert (
+            "items" in data and "total" in data and "page" in data and "limit" in data
+        )
         assert any(g["name"] == "Tomato" for g in data["items"])
 
     async def test_list_goods_is_cached(self, client: AsyncClient, a_good: dict):

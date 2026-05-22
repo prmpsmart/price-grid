@@ -8,7 +8,6 @@ from app.models.user import User, UserRole
 from app.schemas.auth import UserRegister
 from app.services.auth_service import AuthService
 
-
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 
 

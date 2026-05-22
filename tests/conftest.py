@@ -4,23 +4,21 @@ from collections.abc import AsyncGenerator
 
 import pytest
 import pytest_asyncio
-from alembic import command
 from alembic.config import Config
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
+from uuid_extensions import uuid7
 
 import app.core.cache.redis as redis_module
 import app.models  # noqa: F401 — registers all models with Base.metadata
+from alembic import command
 from app.core.cache.redis import create_redis_client, get_redis
 from app.core.db.database import get_async_db_url, get_db
 from app.main import app as fastapi_app
-
-from uuid_extensions import uuid7
 from app.models import User, UserRole
-from app.services.auth_service import AuthService
-from app.services.auth_service import UserRepository
+from app.services.auth_service import AuthService, UserRepository
 
 # ── Schema reset helper — runs in its own thread+loop ─────────────────────────
 
@@ -66,7 +64,7 @@ def run_migrations():
 
 
 @pytest_asyncio.fixture
-async def db_session() -> AsyncGenerator[AsyncSession, None]:
+async def db_session() -> AsyncGenerator[AsyncSession]:
     engine = create_async_engine(get_async_db_url(), poolclass=NullPool)
     connection = await engine.connect()
     transaction = await connection.begin()
@@ -99,7 +97,7 @@ async def redis_client():
 async def client(
     db_session: AsyncSession,
     redis_client,
-) -> AsyncGenerator[AsyncClient, None]:
+) -> AsyncGenerator[AsyncClient]:
     async def _override_db():
         yield db_session
 

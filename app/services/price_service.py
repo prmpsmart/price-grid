@@ -6,6 +6,7 @@ import redis.asyncio as aioredis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.settings import settings
+from app.events.publisher import get_spike_threshold, publish_spike_event
 from app.models.price import PriceRecord
 from app.models.user import User, UserRole
 from app.repositories.price_repo import PriceRepository
@@ -33,7 +34,8 @@ class PriceService:
 
         if current_user.role == UserRole.vendor:
             vendor = await self.vendor_repo.get_by_user_id(
-                self.session, current_user.id
+                self.session,
+                str(current_user.id),
             )
             if not vendor or vendor.id != payload.vendor_id:
                 raise PermissionError(
@@ -51,7 +53,29 @@ class PriceService:
 
         await redis.delete(f"price:current:{payload.good_id}:{payload.market_id}")
 
-        # Sprint 3: spike detection and pub/sub event will be added here
+        avg = await self.repo.get_rolling_average(
+            self.session,
+            str(payload.good_id),
+            str(payload.market_id),
+        )
+        if avg is not None and avg > 0:
+            threshold = await get_spike_threshold(
+                redis, str(payload.good_id), str(payload.market_id)
+            )
+            delta_pct = ((record.price - avg) / avg) * Decimal("100")
+            if delta_pct > Decimal(str(threshold)):
+                await publish_spike_event(
+                    redis,
+                    {
+                        "good_id": str(payload.good_id),
+                        "market_id": str(payload.market_id),
+                        "price": str(record.price),
+                        "previous_avg": str(avg),
+                        "delta_pct": str(delta_pct),
+                        "threshold_pct": str(threshold),
+                        "currency": record.currency,
+                    },
+                )
 
         return record
 
