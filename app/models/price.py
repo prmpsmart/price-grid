@@ -7,10 +7,10 @@ from sqlalchemy import DateTime, ForeignKey, Index, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
 
-from app.core.database.database import Base
+from app.core.db.database import BaseModel
 
 
-class PriceRecord(Base):
+class PriceRecord(BaseModel):
     __tablename__ = "price_records"
 
     good_id: Mapped[uuid.UUID] = mapped_column(

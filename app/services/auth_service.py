@@ -1,15 +1,12 @@
-from datetime import UTC, datetime, timedelta
-
-from jose import JWTError, jwt
-from passlib.context import CryptContext
+import bcrypt
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.settings import settings
+from app.core.types.token import TokenType
+from app.core.utils.exceptions import TokenExpiredError, TokenInvalidError
+from app.core.utils.token import token_codec
 from app.models.user import User
 from app.repositories.user_repo import UserRepository
 from app.schemas.auth import TokenData, UserRegister
-
-_pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 class AuthService:
@@ -18,28 +15,20 @@ class AuthService:
         self.session = session
 
     def hash_password(self, password: str) -> str:
-        return _pwd_context.hash(password)
+        return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 
     def verify_password(self, plain: str, hashed: str) -> bool:
-        return _pwd_context.verify(plain, hashed)
+        return bcrypt.checkpw(plain.encode(), hashed.encode())
 
     def create_access_token(self, user_id: str) -> str:
-        expire = datetime.now(UTC) + timedelta(
-            minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
-        )
-        return jwt.encode(
-            {"sub": user_id, "exp": expire},
-            settings.SECRET_KEY,
-            algorithm=settings.ALGORITHM,
-        )
+        token, _ = token_codec.generate({"sub": user_id}, TokenType.ACCESS)
+        return token
 
     def decode_token(self, token: str) -> TokenData:
         try:
-            payload = jwt.decode(
-                token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
-            )
+            payload = token_codec.decode(token)
             return TokenData(user_id=payload["sub"])
-        except (JWTError, KeyError, ValueError) as exc:
+        except (TokenExpiredError, TokenInvalidError, KeyError) as exc:
             raise ValueError("Invalid or expired token") from exc
 
     async def register(self, payload: UserRegister) -> User:
@@ -54,7 +43,7 @@ class AuthService:
         user = await self.repo.get_by_email(self.session, email)
         if not user or not self.verify_password(password, user.hashed_password):
             raise ValueError("Invalid credentials")
-        return self.create_access_token(user.id)
+        return self.create_access_token(str(user.id))
 
     async def get_user_by_id(self, user_id: str) -> User | None:
         return await self.repo.get_by_id(self.session, user_id)

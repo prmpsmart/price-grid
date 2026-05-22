@@ -4,7 +4,7 @@ from sqlalchemy import Enum as SAEnum
 from sqlalchemy import String
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.core.database.database import Base
+from app.core.db.database import BaseModel
 
 
 class UserRole(enum.StrEnum):
@@ -13,7 +13,7 @@ class UserRole(enum.StrEnum):
     viewer = "viewer"
 
 
-class User(Base):
+class User(BaseModel):
     __tablename__ = "users"
 
     email: Mapped[str] = mapped_column(

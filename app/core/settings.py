@@ -14,12 +14,15 @@ class Settings(BaseSettings):
     DATABASE_URL: str
     TEST_DATABASE_URL: str | None = None
     REDIS_URL: str
-    SECRET_KEY: str
-    ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     ENVIRONMENT: Environment = Environment.DEVELOPMENT
     SPIKE_THRESHOLD_PCT: float = 20.0
     CACHE_TTL_SECONDS: int = 300
+
+    # JWT
+    SECRET_KEY: str
+    ALGORITHM: str = "HS256"
+    JWT_ISSUER: str = "viro"
+    JWT_AUDIENCE: str = "viro_api"
 
     # Redis Configuration
     REDIS_DECODE_RESPONSES: bool = True

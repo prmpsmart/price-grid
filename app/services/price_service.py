@@ -34,7 +34,7 @@ class PriceService:
             vendor = await self.vendor_repo.get_by_user_id(
                 self.session, current_user.id
             )
-            if not vendor or vendor.id != str(payload.vendor_id):
+            if not vendor or vendor.id != payload.vendor_id:
                 raise PermissionError(
                     "Vendors may only submit prices under their own profile"
                 )

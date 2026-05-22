@@ -1,9 +1,9 @@
 import redis.asyncio as aioredis
-from core.utils.retry import with_retry
 from loguru import logger
 from redis.asyncio import Redis
 
 from app.core.settings import settings
+from app.core.utils.retry import with_retry
 
 _redis_client: Redis | None = None
 
@@ -29,7 +29,7 @@ def create_redis_client() -> Redis:
 async def verify_redis_connection() -> None:
     global _redis_client
     _redis_client = create_redis_client()
-    _redis_client.ping()
+    await _redis_client.ping()  # type: ignore
     logger.info("Redis connection verified")
 
 

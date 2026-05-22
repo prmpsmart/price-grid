@@ -18,7 +18,7 @@ def _get_service(db: AsyncSession = Depends(get_db)) -> GoodService:
     return GoodService(_repo, db)
 
 
-@router.get("/", response_model=list[GoodOut])
+@router.get("", response_model=list[GoodOut])
 async def list_goods(
     service: GoodService = Depends(_get_service),
     redis: aioredis.Redis = Depends(get_redis),
@@ -26,7 +26,7 @@ async def list_goods(
     return await service.list_all(redis)
 
 
-@router.post("/", response_model=GoodOut, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=GoodOut, status_code=status.HTTP_201_CREATED)
 async def create_good(
     payload: GoodCreate,
     current_user: User = Depends(get_current_user),

@@ -16,7 +16,7 @@ from app.core.settings import settings
 
 from ..types.base import Environment
 from ..utils.retry import with_retry
-from .base_model import Base
+from .base_model import BaseModel
 
 
 def _parse_database_url(db_url: str) -> tuple[str, str | None]:
@@ -175,7 +175,7 @@ AsyncSessionLocal = async_sessionmaker(
 
 
 @asynccontextmanager
-async def db_session() -> AsyncGenerator[AsyncSession, None]:
+async def db_session() -> AsyncGenerator[AsyncSession]:
     """The 'Source of Truth' for session lifecycle."""
     session = AsyncSessionLocal()
     try:
@@ -188,7 +188,7 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
         await session.close()
 
 
-async def get_db() -> AsyncGenerator[AsyncSession, None]:
+async def get_db() -> AsyncGenerator[AsyncSession]:
     """FastAPI Dependency that reuses the context manager."""
     async with db_session() as session:
         yield session
@@ -230,7 +230,7 @@ async def verify_database_connection() -> None:
 async def create_db_and_tables() -> None:
     """Create database tables."""
     async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+        await conn.run_sync(BaseModel.metadata.create_all)
         logger.info("Database tables created")
 
 

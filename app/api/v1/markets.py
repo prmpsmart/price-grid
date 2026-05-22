@@ -16,12 +16,12 @@ def _get_service(db: AsyncSession = Depends(get_db)) -> MarketService:
     return MarketService(_repo, db)
 
 
-@router.get("/", response_model=list[MarketOut])
+@router.get("", response_model=list[MarketOut])
 async def list_markets(service: MarketService = Depends(_get_service)):
     return await service.list_all()
 
 
-@router.post("/", response_model=MarketOut, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=MarketOut, status_code=status.HTTP_201_CREATED)
 async def create_market(
     payload: MarketCreate,
     current_user: User = Depends(get_current_user),

@@ -1,19 +1,20 @@
-import pytest
-import redis.asyncio as aioredis
+import pytest_asyncio
 from httpx import AsyncClient
 
-from app.core.settings import settings
+# ── Flush Redis after every integration test ──────────────────────────────────
+# Reuses the redis_client from root conftest — no second client, no loop mismatch.
 
 
-@pytest.fixture(autouse=True)
-async def _clean_redis():
+@pytest_asyncio.fixture(autouse=True)
+async def _clean_redis(redis_client):
     yield
-    client = aioredis.from_url(settings.REDIS_URL)
-    await client.flushdb()
-    await client.aclose()
+    await redis_client.flushdb()
 
 
-@pytest.fixture
+# ── Auth tokens ───────────────────────────────────────────────────────────────
+
+
+@pytest_asyncio.fixture
 async def admin_token(client: AsyncClient) -> str:
     await client.post(
         "/api/v1/auth/register",
@@ -26,7 +27,7 @@ async def admin_token(client: AsyncClient) -> str:
     return resp.json()["access_token"]
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def vendor_token(client: AsyncClient) -> str:
     await client.post(
         "/api/v1/auth/register",
@@ -39,7 +40,7 @@ async def vendor_token(client: AsyncClient) -> str:
     return resp.json()["access_token"]
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def viewer_token(client: AsyncClient) -> str:
     await client.post(
         "/api/v1/auth/register",
@@ -52,7 +53,10 @@ async def viewer_token(client: AsyncClient) -> str:
     return resp.json()["access_token"]
 
 
-@pytest.fixture
+# ── Domain fixtures ───────────────────────────────────────────────────────────
+
+
+@pytest_asyncio.fixture
 async def vendor_with_profile(client: AsyncClient, vendor_token: str) -> dict:
     resp = await client.post(
         "/api/v1/vendors",
@@ -63,7 +67,7 @@ async def vendor_with_profile(client: AsyncClient, vendor_token: str) -> dict:
     return {"token": vendor_token, "vendor_id": resp.json()["id"]}
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def a_good(client: AsyncClient, admin_token: str) -> dict:
     resp = await client.post(
         "/api/v1/goods",
@@ -74,7 +78,7 @@ async def a_good(client: AsyncClient, admin_token: str) -> dict:
     return resp.json()
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def a_market(client: AsyncClient, admin_token: str) -> dict:
     resp = await client.post(
         "/api/v1/markets",

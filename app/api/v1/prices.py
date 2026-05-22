@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.auth import get_current_user
 from app.core.cache.redis import get_redis
-from app.core.database.database import get_db
+from app.core.db.database import get_db
 from app.models.user import User
 from app.repositories.price_repo import PriceRepository
 from app.repositories.vendor_repo import VendorRepository
@@ -18,10 +18,14 @@ router = APIRouter(prefix="/prices", tags=["prices"])
 
 
 def _get_service(db: AsyncSession = Depends(get_db)) -> PriceService:
-    return PriceService(PriceRepository(db), VendorRepository(db))
+    return PriceService(
+        PriceRepository(),
+        VendorRepository(),
+        db,
+    )
 
 
-@router.post("/", response_model=PriceOut, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=PriceOut, status_code=status.HTTP_201_CREATED)
 async def submit_price(
     payload: PriceCreate,
     current_user: User = Depends(get_current_user),
@@ -45,12 +49,16 @@ async def get_current_prices(
     redis: aioredis.Redis = Depends(get_redis),
 ):
     if good_id and market_id:
-        price = await service.get_current(good_id, market_id, redis)
+        price = await service.get_current(
+            str(good_id),
+            str(market_id),
+            redis,
+        )
         return [price] if price else []
     return await service.list_all_current()
 
 
-@router.get("/", response_model=list[PriceOut])
+@router.get("", response_model=list[PriceOut])
 async def list_prices(
     good_id: uuid.UUID | None = Query(None),
     market_id: uuid.UUID | None = Query(None),
@@ -58,4 +66,9 @@ async def list_prices(
     date_to: datetime | None = Query(None),
     service: PriceService = Depends(_get_service),
 ):
-    return await service.list_filtered(good_id, market_id, date_from, date_to)
+    return await service.list_filtered(
+        str(good_id) if good_id else None,
+        str(market_id) if market_id else None,
+        date_from,
+        date_to,
+    )

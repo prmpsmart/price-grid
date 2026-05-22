@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.auth import get_current_user
-from app.core.database.database import get_db
+from app.core.db.database import get_db
 from app.models.user import User
 from app.repositories.vendor_repo import VendorRepository
 from app.schemas.vendors import VendorCreate, VendorOut
@@ -16,12 +16,12 @@ def _get_service(db: AsyncSession = Depends(get_db)) -> VendorService:
     return VendorService(_repo, db)
 
 
-@router.get("/", response_model=list[VendorOut])
+@router.get("", response_model=list[VendorOut])
 async def list_vendors(service: VendorService = Depends(_get_service)):
     return await service.list_all()
 
 
-@router.post("/", response_model=VendorOut, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=VendorOut, status_code=status.HTTP_201_CREATED)
 async def register_vendor(
     payload: VendorCreate,
     current_user: User = Depends(get_current_user),

@@ -1,5 +1,6 @@
 import pytest
 from httpx import AsyncClient
+from uuid_extensions import uuid7
 
 
 @pytest.fixture
@@ -25,6 +26,7 @@ async def submitted_price(
 
 
 # ── Submit ────────────────────────────────────────────────────────────────────
+
 
 async def test_vendor_can_submit_price(
     client: AsyncClient,
@@ -59,7 +61,7 @@ async def test_viewer_cannot_submit_price(
         "/api/v1/prices",
         json={
             "good_id": a_good["id"],
-            "vendor_id": "00000000-0000-0000-0000-000000000000",
+            "vendor_id": str(uuid7()),
             "market_id": a_market["id"],
             "price": 100.0,
             "currency": "NGN",
@@ -109,7 +111,10 @@ async def test_vendor_cannot_submit_for_another_vendor(
 
 # ── List / Filter ─────────────────────────────────────────────────────────────
 
-async def test_list_prices_returns_submissions(client: AsyncClient, submitted_price: dict):
+
+async def test_list_prices_returns_submissions(
+    client: AsyncClient, submitted_price: dict
+):
     resp = await client.get("/api/v1/prices")
     assert resp.status_code == 200
     ids = [p["id"] for p in resp.json()]
@@ -125,6 +130,7 @@ async def test_list_prices_filter_by_good(
 
 
 # ── Current price (cached) ────────────────────────────────────────────────────
+
 
 async def test_get_current_price_with_params(
     client: AsyncClient, submitted_price: dict, a_good: dict, a_market: dict

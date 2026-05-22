@@ -4,12 +4,12 @@ from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
-from app.core.settings import settings
-from app.core.database.database import Base
+from app.core.db.base_model import Base
+from app.core.db.database import get_async_db_url
 import app.models  # noqa: F401 — registers all models with Base.metadata
 
 config = context.config
-config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+config.set_main_option("sqlalchemy.url", get_async_db_url())
 
 target_metadata = Base.metadata
 
