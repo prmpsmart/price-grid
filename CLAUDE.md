@@ -14,7 +14,7 @@ PriceGrid is a market price intelligence REST API. It tracks prices of goods acr
 
 | Layer           | Tool                        |
 | --------------- | --------------------------- |
-| Language        | Python 3.11                 |
+| Language        | Python 3.13                 |
 | Framework       | FastAPI                     |
 | ORM             | SQLAlchemy 2.0 (async)      |
 | Migrations      | Alembic                     |

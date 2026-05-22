@@ -85,7 +85,7 @@ docker-compose down -v
 
 `uv` is a fast Python package and project manager (written in Rust). It replaces `pip`, `pip-tools`, and `venv` in one tool — installs are 10–100x faster.
 
-**Prerequisites:** Python 3.11+, uv, a running PostgreSQL and Redis instance.
+**Prerequisites:** Python 3.13+, uv, a running PostgreSQL and Redis instance.
 
 **Install uv** (if you don't have it):
 

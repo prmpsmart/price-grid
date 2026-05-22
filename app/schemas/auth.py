@@ -1,9 +1,7 @@
-import uuid
-from datetime import datetime
-
-from pydantic import BaseModel
+from pydantic import UUID7, BaseModel
 
 from app.models.user import UserRole
+from app.schemas.base import ModelSchema
 
 
 class UserRegister(BaseModel):
@@ -23,13 +21,9 @@ class Token(BaseModel):
 
 
 class TokenData(BaseModel):
-    user_id: uuid.UUID
+    user_id: UUID7
 
 
-class UserOut(BaseModel):
-    id: uuid.UUID
+class UserOut(ModelSchema):
     email: str
     role: UserRole
-    created_at: datetime
-
-    model_config = {"from_attributes": True}

@@ -7,6 +7,7 @@ from app.models.user import User, UserRole
 from app.schemas.auth import UserRegister
 from app.services.auth_service import AuthService
 
+# use real repos, db session, redis
 
 @pytest.fixture
 def mock_repo():
@@ -20,6 +21,7 @@ def service(mock_repo):
 
 # ── Password ──────────────────────────────────────────────────────────────────
 
+
 def test_hash_and_verify_password(service):
     hashed = service.hash_password("secret123")
     assert service.verify_password("secret123", hashed)
@@ -27,6 +29,7 @@ def test_hash_and_verify_password(service):
 
 
 # ── JWT ───────────────────────────────────────────────────────────────────────
+
 
 def test_create_and_decode_token(service):
     user_id = uuid.uuid4()
@@ -42,13 +45,19 @@ def test_decode_invalid_token_raises(service):
 
 # ── Register ──────────────────────────────────────────────────────────────────
 
+
 async def test_register_success(service, mock_repo):
     mock_repo.get_by_email.return_value = None
     mock_repo.create.return_value = User(
-        id=uuid.uuid4(), email="user@example.com", hashed_password="hashed", role=UserRole.viewer
+        id=uuid.uuid4(),
+        email="user@example.com",
+        hashed_password="hashed",
+        role=UserRole.viewer,
     )
 
-    result = await service.register(UserRegister(email="user@example.com", password="pass123"))
+    result = await service.register(
+        UserRegister(email="user@example.com", password="pass123")
+    )
 
     assert result.email == "user@example.com"
     mock_repo.create.assert_called_once()
@@ -56,7 +65,10 @@ async def test_register_success(service, mock_repo):
 
 async def test_register_duplicate_email_raises(service, mock_repo):
     mock_repo.get_by_email.return_value = User(
-        id=uuid.uuid4(), email="dup@example.com", hashed_password="x", role=UserRole.viewer
+        id=uuid.uuid4(),
+        email="dup@example.com",
+        hashed_password="x",
+        role=UserRole.viewer,
     )
 
     with pytest.raises(ValueError, match="already registered"):
@@ -65,10 +77,14 @@ async def test_register_duplicate_email_raises(service, mock_repo):
 
 # ── Login ─────────────────────────────────────────────────────────────────────
 
+
 async def test_login_success(service, mock_repo):
     hashed = service.hash_password("correct")
     mock_repo.get_by_email.return_value = User(
-        id=uuid.uuid4(), email="u@example.com", hashed_password=hashed, role=UserRole.viewer
+        id=uuid.uuid4(),
+        email="u@example.com",
+        hashed_password=hashed,
+        role=UserRole.viewer,
     )
 
     token = await service.login("u@example.com", "correct")
@@ -78,7 +94,10 @@ async def test_login_success(service, mock_repo):
 async def test_login_wrong_password_raises(service, mock_repo):
     hashed = service.hash_password("correct")
     mock_repo.get_by_email.return_value = User(
-        id=uuid.uuid4(), email="u@example.com", hashed_password=hashed, role=UserRole.viewer
+        id=uuid.uuid4(),
+        email="u@example.com",
+        hashed_password=hashed,
+        role=UserRole.viewer,
     )
 
     with pytest.raises(ValueError, match="Invalid credentials"):

@@ -27,7 +27,6 @@ ENV
 .uv-cache
 
 # ── Testing & coverage ────────────────────────────────────────────────────────
-tests/
 .pytest_cache
 .coverage
 htmlcov/
@@ -48,11 +47,9 @@ docker-compose.yml
 .dockerignore
 
 # ── Docs & project files ──────────────────────────────────────────────────────
-README.md
+# README.md is kept — hatchling requires it during build
 CLAUDE.md
-*.md
 Makefile
-docs/
 
 # ── IDE & editor ──────────────────────────────────────────────────────────────
 .vscode/
