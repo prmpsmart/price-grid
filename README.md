@@ -39,7 +39,7 @@ Built to address a real problem — price opacity in everyday markets. In many m
 | ----------------- | ------- | -------------------------------------------------------------------------- |
 | FastAPI           | 0.111+  | High-performance async REST framework with automatic OpenAPI docs          |
 | PostgreSQL        | 15      | Relational integrity for price history and user/vendor relationships       |
-| SQLAlchemy        | 2.0     | ORM with full Alembic migration support                                    |
+| SQLModel          | 0.0.38  | ORM + Pydantic schema in one — table models serve as both DB tables and API response schemas |
 | Alembic           | 1.13+   | Schema versioning — no manual SQL, ever                                    |
 | Redis             | 7       | Price caching on read-heavy endpoints + pub/sub for spike alerts           |
 | uv                | Latest  | Fast Python package manager — replaces pip + venv. 10-100x faster installs |
@@ -304,9 +304,13 @@ curl http://localhost:8000/api/v1/prices/compare?good_id=a1b2c3d4-e5f6-7890-abcd
 
 ## Design Decisions
 
+### Why SQLModel instead of SQLAlchemy + Pydantic separately?
+
+SQLModel unifies the ORM and schema layers. A `Good` model declared with `table=True` is simultaneously a SQLAlchemy table and a Pydantic model — it can be returned directly from routes as a response schema without a separate `GoodOut` class to keep in sync. Input-only schemas (payloads that don't map 1:1 to a table, like `GoodCreate` or `UserRegister`) still live in `app/schemas.py` as plain Pydantic models. Alembic reads `SQLModel.metadata` for migrations the same way it previously read `Base.metadata`.
+
 ### Why the Repository pattern?
 
-All database access goes through repository classes (`price_repo.py`, `good_repo.py`, etc.) — never directly from routes. This means the service layer can be tested without a real database. Tests pass in mock repositories. Routes stay thin.
+All database access goes through repository classes (`price_repo.py`, `good_repo.py`, etc.) — never directly from routes. This keeps the service layer independent of the database session and makes the query layer easy to swap or extend without touching business logic.
 
 ### Why Redis cache on `/prices/current`?
 
@@ -386,6 +390,7 @@ uv run pytest --cov=app --cov-report=term-missing
 | Sprint 2 | Core Domain — Goods, Vendors, Prices        | CRUD endpoints · PriceRepository · PriceService · Redis cache on /current · Offset pagination on all list endpoints |
 | Sprint 3 | Intelligence — Spike Detection & Alerts     | Spike logic · pub/sub publisher + consumer · price_alerts migration · Alert endpoints · Unit tests                  |
 | Sprint 4 | Polish — History, Trends, Integration Tests | History endpoint · Trends endpoint · Cross-market compare · Full integration tests · README                         |
+| Sprint 5 | SQLModel Migration                          | Replaced SQLAlchemy DeclarativeBase + Pydantic Out schemas with SQLModel · Collapsed schemas/ into schemas.py · Extracted auth deps to api/deps/ · Switched typecheck from mypy to pyright |
 
 ---
 
@@ -394,11 +399,13 @@ uv run pytest --cov=app --cov-report=term-missing
 ```
 pricegrid/
 ├── app/
-│   ├── api/v1/          # FastAPI routers — routes only, no business logic
+│   ├── api/
+│   │   ├── deps/        # Shared FastAPI dependencies (auth guards)
+│   │   └── v1/          # FastAPI routers — routes only, no business logic
 │   ├── services/        # Business logic layer
 │   ├── repositories/    # Data access layer (Repository pattern)
-│   ├── models/          # SQLAlchemy ORM models
-│   ├── schemas/         # Pydantic request/response schemas
+│   ├── models/          # SQLModel table models — ORM + response schema in one
+│   ├── schemas.py       # Pydantic input schemas (request payloads only)
 │   ├── core/            # Config, DB session, Redis client
 │   ├── events/          # Pub/sub publisher and consumer
 │   └── main.py

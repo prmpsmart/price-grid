@@ -4,7 +4,7 @@
 
 ### Backend Portfolio Project — Full Technical Blueprint
 
-**Stack:** FastAPI · PostgreSQL · SQLAlchemy · Redis · Docker · pytest
+**Stack:** FastAPI · PostgreSQL · SQLModel · Redis · Docker · pytest
 
 ---
 
@@ -34,7 +34,7 @@ Every skill in the job description is exercised genuinely — not artificially b
 | Skill                   | Where It Appears in PriceGrid                                                                                                 | Depth   |
 | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ------- |
 | FastAPI                 | REST API layer: auth, price submission, comparison, alerts, search endpoints                                                  | Core    |
-| PostgreSQL + SQLAlchemy | Relational schema: goods, vendors, markets, price records, users. Foreign keys, joins, constraints, Alembic migrations        | Core    |
+| PostgreSQL + SQLModel   | Relational schema: goods, vendors, markets, price records, users. Foreign keys, joins, constraints, Alembic migrations. Models serve as both ORM tables and API response schemas | Core    |
 | Redis — Caching         | Current price cache per good/market. Cache invalidated on new submission. Heavy read optimisation                             | Core    |
 | Redis — Pub/Sub         | Price spike events published to channel. Alert subscribers consume and log notifications                                      | Core    |
 | Docker                  | API, PostgreSQL, Redis all containerised. Single `docker-compose up` spins everything                                         | Core    |
@@ -64,7 +64,7 @@ A price submission follows this path:
 2. FastAPI route receives and validates the request
 3. Auth middleware checks JWT and role (only vendors/admins can submit)
 4. `PriceService` checks for spikes against historical average
-5. `PriceRepository` writes to PostgreSQL via SQLAlchemy
+5. `PriceRepository` writes to PostgreSQL via SQLModel
 6. Redis cache for that good/market is invalidated
 7. If spike detected, event published to Redis pub/sub channel
 8. Alert consumer logs or records the notification
@@ -75,6 +75,8 @@ A price submission follows this path:
 pricegrid/
 ├── app/
 │   ├── api/
+│   │   ├── deps/            # Shared FastAPI dependencies
+│   │   │   └── auth.py      # get_current_user, get_auth_service
 │   │   └── v1/
 │   │       ├── auth.py
 │   │       ├── prices.py
@@ -90,13 +92,13 @@ pricegrid/
 │   │   ├── price_repo.py
 │   │   ├── good_repo.py
 │   │   └── vendor_repo.py
-│   ├── models/
+│   ├── models/              # SQLModel table models — ORM + response schema in one
 │   │   ├── user.py
 │   │   ├── good.py
 │   │   ├── vendor.py
 │   │   ├── market.py
 │   │   └── price.py
-│   ├── schemas/
+│   ├── schemas.py           # Pydantic input schemas (request payloads only)
 │   ├── core/
 │   │   ├── config.py
 │   │   ├── database.py
@@ -268,10 +270,11 @@ Four focused sprints. Each one is a shippable slice of the system.
 
 | Sprint                | Focus                 | Deliverables                                                                                                                                                       | Skills Demonstrated                                            |
 | --------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------- |
-| Sprint 1 (Days 1–3)   | Foundation            | Project setup, Docker Compose, PostgreSQL connection, Alembic migrations, User model, JWT auth endpoints, basic tests                                              | Docker, PostgreSQL, SQLAlchemy, FastAPI, pytest                |
+| Sprint 1 (Days 1–3)   | Foundation            | Project setup, Docker Compose, PostgreSQL connection, Alembic migrations, User model, JWT auth endpoints, basic tests                                              | Docker, PostgreSQL, SQLModel, FastAPI, pytest                  |
 | Sprint 2 (Days 4–6)   | Core Domain           | Goods, Vendors, Markets CRUD. Price submission endpoint. PriceRepository. PriceService (no spike logic yet). Redis cache on GET /prices/current. Offset pagination (`page`, `total`, `limit`) on all list endpoints | Repository pattern, Service layer, Redis caching, pagination   |
 | Sprint 3 (Days 7–9)   | Intelligence Layer    | Spike detection logic in PriceService. Redis pub/sub publisher + consumer. price_alerts table + migration. Alert endpoints. Full unit test coverage of spike logic | Observer pattern, pub/sub, business logic testing              |
 | Sprint 4 (Days 10–12) | Polish & Completeness | Price history endpoint. Trend/average endpoint. Cross-market comparison. Integration tests. README with architecture diagram. .env.example. Clean commit history   | Integration testing, documentation, engineering best practices |
+| Sprint 5              | SQLModel Migration    | Replaced SQLAlchemy DeclarativeBase + separate Pydantic Out schemas with SQLModel. Collapsed `schemas/` into `schemas.py`. Extracted auth deps to `api/deps/`. Switched type checker from mypy to pyright | SQLModel, architectural refactoring                           |
 
 ---
 

@@ -12,17 +12,18 @@ PriceGrid is a market price intelligence REST API. It tracks prices of goods acr
 
 ## Tech Stack
 
-| Layer           | Tool                        |
-| --------------- | --------------------------- |
-| Language        | Python 3.13                 |
-| Framework       | FastAPI                     |
-| ORM             | SQLAlchemy 2.0 (async)      |
-| Migrations      | Alembic                     |
-| Database        | PostgreSQL 15               |
-| Cache + Events  | Redis 7 (caching + pub/sub) |
-| Package manager | uv                          |
-| Testing         | pytest                      |
-| Containers      | Docker + Docker Compose     |
+| Layer           | Tool                                          |
+| --------------- | --------------------------------------------- |
+| Language        | Python 3.13                                   |
+| Framework       | FastAPI                                       |
+| ORM             | SQLModel 0.0.38 (wraps SQLAlchemy 2.0 async)  |
+| Migrations      | Alembic                                       |
+| Database        | PostgreSQL 15                                 |
+| Cache + Events  | Redis 7 (caching + pub/sub)                   |
+| Package manager | uv                                            |
+| Testing         | pytest                                        |
+| Type checker    | pyright (configured in `pyproject.toml`)      |
+| Containers      | Docker + Docker Compose                       |
 
 ---
 
@@ -31,33 +32,36 @@ PriceGrid is a market price intelligence REST API. It tracks prices of goods acr
 ```
 pricegrid/
 ├── app/
-│   ├── api/v1/          # Routers only — no business logic here
-│   │   ├── auth.py
-│   │   ├── prices.py
-│   │   ├── goods.py
-│   │   ├── vendors.py
-│   │   ├── markets.py
-│   │   └── alerts.py
-│   ├── services/        # All business logic lives here
+│   ├── api/
+│   │   ├── deps/            # Shared FastAPI dependencies
+│   │   │   └── auth.py      # get_current_user, get_auth_service
+│   │   └── v1/              # Routers only — no business logic here
+│   │       ├── auth.py
+│   │       ├── prices.py
+│   │       ├── goods.py
+│   │       ├── vendors.py
+│   │       ├── markets.py
+│   │       └── alerts.py
+│   ├── services/            # All business logic lives here
 │   │   ├── price_service.py
 │   │   ├── alert_service.py
 │   │   └── auth_service.py
-│   ├── repositories/    # All database access lives here
+│   ├── repositories/        # All database access lives here
 │   │   ├── price_repo.py
 │   │   ├── good_repo.py
 │   │   └── vendor_repo.py
-│   ├── models/          # SQLAlchemy ORM models
+│   ├── models/              # SQLModel table models (ORM + response schema in one)
 │   │   ├── user.py
 │   │   ├── good.py
 │   │   ├── vendor.py
 │   │   ├── market.py
 │   │   └── price.py
-│   ├── schemas/         # Pydantic request/response schemas
-│   ├── core/            # Config, DB session, Redis client
+│   ├── schemas.py           # Pydantic input-only schemas (request payloads)
+│   ├── core/                # Config, DB session, Redis client
 │   │   ├── config.py
 │   │   ├── database.py
 │   │   └── redis.py
-│   ├── events/          # Pub/sub publisher and consumer
+│   ├── events/              # Pub/sub publisher and consumer
 │   │   ├── publisher.py
 │   │   └── consumer.py
 │   └── main.py
@@ -100,11 +104,11 @@ async def submit_price(payload: PriceCreate, db: AsyncSession = Depends(get_db))
 
 ### 2. Services own business logic
 
-All rules, calculations, and decisions live in `app/services/`. Services call repositories for data — they never import SQLAlchemy models directly or write raw queries.
+All rules, calculations, and decisions live in `app/services/`. Services call repositories for data — they never write raw queries.
 
 ### 3. Repositories own data access
 
-All SQLAlchemy queries live in `app/repositories/`. Nothing else touches the database session directly. Repositories take a session as a parameter — they do not create their own.
+All SQLModel queries live in `app/repositories/`. Nothing else touches the database session directly. Repositories take a session as a parameter — they do not create their own.
 
 ```python
 # CORRECT
@@ -122,7 +126,7 @@ DB sessions, Redis clients, current user, and service instances are all injected
 
 ### 5. All schema changes go through Alembic
 
-Never modify the database directly. Never use `Base.metadata.create_all()` in production code. Every schema change is a migration.
+Never modify the database directly. Never use `SQLModel.metadata.create_all()` in production code. Every schema change is a migration.
 
 ```bash
 # Create a new migration after changing a model
@@ -250,7 +254,7 @@ SPIKE_THRESHOLD_PCT
 ## What Not To Do
 
 - Do not add third-party API integrations — the system is intentionally self-contained
-- Do not write raw SQL — use SQLAlchemy ORM and repository methods
+- Do not write raw SQL — use SQLModel ORM and repository methods
 - Do not put logic in routes
 - Do not access the database from tests without going through `conftest.py` fixtures
 - Do not use `pip install` — use `uv add`
