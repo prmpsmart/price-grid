@@ -3,7 +3,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.user import User, UserRole
 from app.models.vendor import Vendor
 from app.repositories.vendor_repo import VendorRepository
-from app.schemas.vendors import VendorCreate
+from app.schemas.base import PaginatedResponse
+from app.schemas.vendors import VendorCreate, VendorOut
 
 
 class VendorService:
@@ -11,8 +12,16 @@ class VendorService:
         self.repo = repo
         self.session = session
 
-    async def list_all(self) -> list[Vendor]:
-        return await self.repo.list_all(self.session)
+    async def list_paginated(
+        self, page: int = 1, limit: int = 20
+    ) -> PaginatedResponse[VendorOut]:
+        items, total = await self.repo.list_all(self.session, page=page, limit=limit)
+        return PaginatedResponse(
+            items=[VendorOut.model_validate(v) for v in items],
+            total=total,
+            page=page,
+            limit=limit,
+        )
 
     async def register(self, payload: VendorCreate, current_user: User) -> Vendor:
         if current_user.role not in (UserRole.vendor, UserRole.admin):

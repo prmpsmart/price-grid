@@ -1,6 +1,9 @@
 from datetime import datetime
+from typing import Generic, TypeVar
 
 from pydantic import UUID7, BaseModel, ConfigDict
+
+T = TypeVar("T")
 
 
 class ModelSchema(BaseModel):
@@ -9,3 +12,10 @@ class ModelSchema(BaseModel):
     id: UUID7
     created_at: datetime
     updated_at: datetime
+
+
+class PaginatedResponse(BaseModel, Generic[T]):
+    items: list[T]
+    total: int
+    page: int
+    limit: int

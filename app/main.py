@@ -61,3 +61,20 @@ app.include_router(prices_router, prefix=_PREFIX)
 @app.get("/health", tags=["health"])
 async def health():
     return {"status": "ok"}
+
+
+@app.get("/", tags=["root"])
+async def root():
+    return {
+        "message": "Welcome to the PriceGrid API",
+        "version": "0.1.0",
+        "endpoints": [
+            "/api/v1/auth",
+            "/api/v1/goods",
+            "/api/v1/vendors",
+            "/api/v1/markets",
+            "/api/v1/prices",
+            "/health",
+            "/docs",
+        ],
+    }

@@ -10,6 +10,7 @@ from app.models.price import PriceRecord
 from app.models.user import User, UserRole
 from app.repositories.price_repo import PriceRepository
 from app.repositories.vendor_repo import VendorRepository
+from app.schemas.base import PaginatedResponse
 from app.schemas.prices import PriceCreate, PriceOut
 
 
@@ -72,16 +73,40 @@ class PriceService:
         )
         return result
 
-    async def list_all_current(self) -> list[PriceRecord]:
-        return await self.repo.list_current(self.session)
+    async def list_current_paginated(
+        self, page: int = 1, limit: int = 20
+    ) -> PaginatedResponse[PriceOut]:
+        items, total = await self.repo.list_current(
+            self.session, page=page, limit=limit
+        )
+        return PaginatedResponse(
+            items=[PriceOut.model_validate(r) for r in items],
+            total=total,
+            page=page,
+            limit=limit,
+        )
 
-    async def list_filtered(
+    async def list_filtered_paginated(
         self,
         good_id: str | None,
         market_id: str | None,
         date_from: datetime | None,
         date_to: datetime | None,
-    ) -> list[PriceRecord]:
-        return await self.repo.list_filtered(
-            self.session, good_id, market_id, date_from, date_to
+        page: int = 1,
+        limit: int = 20,
+    ) -> PaginatedResponse[PriceOut]:
+        items, total = await self.repo.list_filtered(
+            self.session,
+            good_id,
+            market_id,
+            date_from,
+            date_to,
+            page=page,
+            limit=limit,
+        )
+        return PaginatedResponse(
+            items=[PriceOut.model_validate(r) for r in items],
+            total=total,
+            page=page,
+            limit=limit,
         )

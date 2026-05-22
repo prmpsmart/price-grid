@@ -117,7 +117,8 @@ async def test_list_prices_returns_submissions(
 ):
     resp = await client.get("/api/v1/prices")
     assert resp.status_code == 200
-    ids = [p["id"] for p in resp.json()]
+    data = resp.json()
+    ids = [p["id"] for p in data["items"]]
     assert submitted_price["id"] in ids
 
 
@@ -126,7 +127,7 @@ async def test_list_prices_filter_by_good(
 ):
     resp = await client.get(f"/api/v1/prices?good_id={a_good['id']}")
     assert resp.status_code == 200
-    assert all(p["good_id"] == a_good["id"] for p in resp.json())
+    assert all(p["good_id"] == a_good["id"] for p in resp.json()["items"])
 
 
 # ── Current price (cached) ────────────────────────────────────────────────────
@@ -140,8 +141,8 @@ async def test_get_current_price_with_params(
     )
     assert resp.status_code == 200
     data = resp.json()
-    assert len(data) == 1
-    assert data[0]["price"] == submitted_price["price"]
+    assert data["total"] == 1
+    assert data["items"][0]["price"] == submitted_price["price"]
 
 
 async def test_current_price_is_cached(
@@ -156,7 +157,7 @@ async def test_current_price_is_cached(
 async def test_get_all_current_prices(client: AsyncClient, submitted_price: dict):
     resp = await client.get("/api/v1/prices/current")
     assert resp.status_code == 200
-    assert len(resp.json()) >= 1
+    assert resp.json()["total"] >= 1
 
 
 async def test_current_price_empty_when_no_submissions(
@@ -166,4 +167,4 @@ async def test_current_price_empty_when_no_submissions(
         f"/api/v1/prices/current?good_id={a_good['id']}&market_id={a_market['id']}"
     )
     assert resp.status_code == 200
-    assert resp.json() == []
+    assert resp.json()["items"] == []

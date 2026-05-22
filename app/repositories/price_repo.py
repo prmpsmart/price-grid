@@ -22,7 +22,9 @@ class PriceRepository(BaseRepository[PriceRecord]):
         )
         return result.scalar_one_or_none()
 
-    async def list_current(self, session: AsyncSession) -> list[PriceRecord]:
+    async def list_current(
+        self, session: AsyncSession, *, page: int, limit: int
+    ) -> tuple[list[PriceRecord], int]:
         """Latest price per good+market pair."""
         latest_subq = (
             select(
@@ -39,8 +41,7 @@ class PriceRepository(BaseRepository[PriceRecord]):
             & (PriceRecord.market_id == latest_subq.c.market_id)
             & (PriceRecord.submitted_at == latest_subq.c.max_ts),
         )
-        result = await session.execute(stmt)
-        return list(result.scalars().all())
+        return await self.paginate_offset(session, stmt=stmt, page=page, limit=limit)
 
     async def list_filtered(
         self,
@@ -49,7 +50,10 @@ class PriceRepository(BaseRepository[PriceRecord]):
         market_id: str | None = None,
         date_from: datetime | None = None,
         date_to: datetime | None = None,
-    ) -> list[PriceRecord]:
+        *,
+        page: int,
+        limit: int,
+    ) -> tuple[list[PriceRecord], int]:
         stmt = select(PriceRecord).order_by(PriceRecord.submitted_at.desc())
         if good_id:
             stmt = stmt.where(PriceRecord.good_id == good_id)
@@ -59,8 +63,7 @@ class PriceRepository(BaseRepository[PriceRecord]):
             stmt = stmt.where(PriceRecord.submitted_at >= date_from)
         if date_to:
             stmt = stmt.where(PriceRecord.submitted_at <= date_to)
-        result = await session.execute(stmt)
-        return list(result.scalars().all())
+        return await self.paginate_offset(session, stmt=stmt, page=page, limit=limit)
 
     async def get_rolling_average(
         self, session: AsyncSession, good_id: str, market_id: str, days: int = 30

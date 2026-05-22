@@ -35,7 +35,9 @@ class TestGoodsVendorsMarkets:
         )
         resp = await client.get("/api/v1/goods")
         assert resp.status_code == 200
-        assert any(g["name"] == "Tomato" for g in resp.json())
+        data = resp.json()
+        assert "items" in data and "total" in data and "page" in data and "limit" in data
+        assert any(g["name"] == "Tomato" for g in data["items"])
 
     async def test_list_goods_is_cached(self, client: AsyncClient, a_good: dict):
         resp1 = await client.get("/api/v1/goods")
@@ -52,7 +54,7 @@ class TestGoodsVendorsMarkets:
             headers={"Authorization": f"Bearer {admin_token}"},
         )
         resp = await client.get("/api/v1/goods")
-        names = [g["name"] for g in resp.json()]
+        names = [g["name"] for g in resp.json()["items"]]
         assert "Palm Oil" in names
 
     # ── Vendors ───────────────────────────────────────────────────────────────────
@@ -97,7 +99,7 @@ class TestGoodsVendorsMarkets:
     async def test_list_vendors(self, client: AsyncClient, vendor_with_profile: dict):
         resp = await client.get("/api/v1/vendors")
         assert resp.status_code == 200
-        assert len(resp.json()) >= 1
+        assert resp.json()["total"] >= 1
 
     # ── Markets ───────────────────────────────────────────────────────────────────
 
@@ -123,4 +125,4 @@ class TestGoodsVendorsMarkets:
     async def test_list_markets(self, client: AsyncClient, a_market: dict):
         resp = await client.get("/api/v1/markets")
         assert resp.status_code == 200
-        assert any(m["name"] == a_market["name"] for m in resp.json())
+        assert any(m["name"] == a_market["name"] for m in resp.json()["items"])

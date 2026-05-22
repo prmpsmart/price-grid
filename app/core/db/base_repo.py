@@ -93,6 +93,22 @@ class BaseRepository[T: BaseModel]:
         result = await session.execute(stmt)
         return cast(CursorResult, result).rowcount > 0
 
+    async def paginate_offset(
+        self,
+        session: AsyncSession,
+        *,
+        stmt: Select,
+        page: int = 1,
+        limit: int = DEFAULT_PAGINATED_LIMIT,
+    ) -> tuple[list[T], int]:
+        from sqlalchemy import func
+
+        count_stmt = select(func.count()).select_from(stmt.subquery())
+        total = (await session.scalar(count_stmt)) or 0
+        stmt = stmt.offset((page - 1) * limit).limit(limit)
+        result = await session.execute(stmt)
+        return list(result.scalars().all()), total
+
     def encode_timestamp_cursor(self, timestamp: datetime, id: str) -> str:
         payload = {"timestamp": timestamp.isoformat(), "id": id}
         return base64.b64encode(json.dumps(payload).encode()).decode()

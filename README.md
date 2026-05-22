@@ -176,11 +176,11 @@ GET    /api/v1/auth/me           Get current user profile
 ### Goods, Vendors & Markets
 
 ```
-GET    /api/v1/goods             List all goods (Redis cached)
+GET    /api/v1/goods             List goods — paginated (Redis cached)
 POST   /api/v1/goods             Create a good (admin only)
-GET    /api/v1/vendors           List all vendors
+GET    /api/v1/vendors           List vendors — paginated
 POST   /api/v1/vendors           Register as a vendor
-GET    /api/v1/markets           List all markets
+GET    /api/v1/markets           List markets — paginated
 POST   /api/v1/markets           Create a market (admin only)
 ```
 
@@ -188,8 +188,8 @@ POST   /api/v1/markets           Create a market (admin only)
 
 ```
 POST   /api/v1/prices                        Submit a price
-GET    /api/v1/prices                        Query prices (filters: good, market, date range)
-GET    /api/v1/prices/current                Latest price per good per market (cached)
+GET    /api/v1/prices                        Query prices — paginated (filters: good, market, date range)
+GET    /api/v1/prices/current                Latest price per good per market — paginated (cached)
 GET    /api/v1/prices/history/{good_id}      Full price history for a good
 GET    /api/v1/prices/compare?good_id={}     Compare prices across markets
 GET    /api/v1/prices/trends?good_id={}&window=7d   Price trend over time window
@@ -202,6 +202,25 @@ GET    /api/v1/alerts                        All spike alerts (admin only)
 GET    /api/v1/alerts/{good_id}              Alerts for a specific good
 POST   /api/v1/alerts/thresholds             Set custom spike threshold (admin only)
 ```
+
+### Pagination
+
+All list endpoints accept `page` and `limit` query parameters and return a consistent envelope:
+
+```
+?page=1&limit=20    # default — page is 1-indexed, limit capped at 100
+```
+
+```json
+{
+  "items": [...],
+  "total": 142,
+  "page": 1,
+  "limit": 20
+}
+```
+
+`total` is the count of all matching records across all pages, not just the current page. Use it to calculate how many pages exist: `ceil(total / limit)`.
 
 ### Example: Submit a price
 
@@ -216,6 +235,23 @@ curl -X POST http://localhost:8000/api/v1/prices \
     "price": 450.00,
     "currency": "NGN"
   }'
+```
+
+### Example: List goods (page 2)
+
+```bash
+curl "http://localhost:8000/api/v1/goods?page=2&limit=10"
+```
+
+```json
+{
+  "items": [
+    { "id": "...", "name": "Tomato", "category": "Vegetable", "unit": "kg", ... }
+  ],
+  "total": 38,
+  "page": 2,
+  "limit": 10
+}
 ```
 
 ### Example: Compare prices across markets
@@ -280,6 +316,10 @@ This endpoint is the most read-heavy in the system — every comparison and dash
 
 The price service does not know about alerts. It just publishes an event to the `price:spikes` channel when a spike is detected. A separate consumer picks it up and writes to `price_alerts`. This decoupling means new consumers (email, webhook, dashboard) can be added later without touching the publisher.
 
+### Why offset-based pagination instead of cursor pagination?
+
+All list endpoints use `{page, total, limit}` offset pagination. The `total` count lets clients build page controls and know how far through a result set they are — important for any UI or export workflow. The base repository implements this with a single `SELECT COUNT(*)` over the filtered subquery before applying `LIMIT`/`OFFSET`. Goods are an exception: because the full list fits in the Redis cache, pagination is done in memory from the cached slice rather than with a second DB round trip.
+
 ### Why append-only price records?
 
 `price_records` is never updated — only inserted. Every price ever submitted is preserved. This gives a complete audit trail and makes trend/history queries straightforward. The "current price" is always the latest record, not a mutable field.
@@ -340,12 +380,12 @@ uv run pytest --cov=app --cov-report=term-missing
 
 ## Sprint Log
 
-| Sprint   | Focus                                       | Key Commits                                                                                        |
-| -------- | ------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| Sprint 1 | Foundation — Docker, DB, Auth               | Project setup · Alembic init · User model · JWT auth endpoints · Auth tests                        |
-| Sprint 2 | Core Domain — Goods, Vendors, Prices        | CRUD endpoints · PriceRepository · PriceService · Redis cache on /current                          |
-| Sprint 3 | Intelligence — Spike Detection & Alerts     | Spike logic · pub/sub publisher + consumer · price_alerts migration · Alert endpoints · Unit tests |
-| Sprint 4 | Polish — History, Trends, Integration Tests | History endpoint · Trends endpoint · Cross-market compare · Full integration tests · README        |
+| Sprint   | Focus                                       | Key Commits                                                                                                         |
+| -------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Sprint 1 | Foundation — Docker, DB, Auth               | Project setup · Alembic init · User model · JWT auth endpoints · Auth tests                                         |
+| Sprint 2 | Core Domain — Goods, Vendors, Prices        | CRUD endpoints · PriceRepository · PriceService · Redis cache on /current · Offset pagination on all list endpoints |
+| Sprint 3 | Intelligence — Spike Detection & Alerts     | Spike logic · pub/sub publisher + consumer · price_alerts migration · Alert endpoints · Unit tests                  |
+| Sprint 4 | Polish — History, Trends, Integration Tests | History endpoint · Trends endpoint · Cross-market compare · Full integration tests · README                         |
 
 ---
 
