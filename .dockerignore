@@ -1,0 +1,62 @@
+# ── Git ───────────────────────────────────────────────────────────────────────
+.git
+.gitignore
+
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__
+**/__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.egg-info
+*.egg
+.eggs
+dist/
+build/
+wheels/
+
+# ── Virtual environments ──────────────────────────────────────────────────────
+.venv
+venv
+env
+ENV
+
+# ── uv ────────────────────────────────────────────────────────────────────────
+# Keep uv.lock — needed for reproducible builds
+# Keep pyproject.toml — needed for uv sync
+.uv-cache
+
+# ── Testing & coverage ────────────────────────────────────────────────────────
+tests/
+.pytest_cache
+.coverage
+htmlcov/
+coverage.xml
+
+# ── Linting & type checking ───────────────────────────────────────────────────
+.ruff_cache
+.mypy_cache
+
+# ── Environment files ─────────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ── Docker ────────────────────────────────────────────────────────────────────
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# ── Docs & project files ──────────────────────────────────────────────────────
+README.md
+CLAUDE.md
+*.md
+Makefile
+docs/
+
+# ── IDE & editor ──────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
