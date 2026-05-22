@@ -45,8 +45,8 @@ Built to address a real problem — price opacity in everyday markets. In many m
 | uv                | Latest  | Fast Python package manager — replaces pip + venv. 10-100x faster installs |
 | Docker + Compose  | Latest  | One-command setup that mirrors production environments                     |
 | pytest            | 7+      | Unit and integration test coverage for business logic and API endpoints    |
-| python-jose       | 3.3+    | JWT authentication                                                         |
-| passlib           | 1.7+    | Password hashing (bcrypt)                                                  |
+| PyJWT             | 2.12+   | JWT encode/decode — used directly via `import jwt`                         |
+| bcrypt            | 4.0+    | Password hashing — used directly without passlib wrapper                   |
 | pydantic-settings | 2.0+    | Environment-based configuration                                            |
 
 ---
