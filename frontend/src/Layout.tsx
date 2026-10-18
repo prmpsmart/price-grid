@@ -58,6 +58,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             href="/"
             className="block border-b border-forest-elevated px-5 py-6 font-display text-lg font-semibold tracking-wide text-forest-warm"
           >
+            <img src="/logo.svg" alt="" className="mb-3 h-12 w-12" />
             PriceGrid
             <span className="eyebrow mt-1 block !text-[10px]">
               market price intelligence
@@ -72,8 +73,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       <header className="fixed inset-x-0 top-0 z-[1000] flex items-center justify-between border-b border-[#B6C7AA30] bg-forest-sidebar/95 px-5 py-3 backdrop-blur-md md:hidden">
         <Link
           href="/"
-          className="font-display text-lg font-semibold text-forest-warm"
+          className="flex items-center gap-2 font-display text-lg font-semibold text-forest-warm"
         >
+          <img src="/logo.svg" alt="" className="h-8 w-8" />
           PriceGrid
         </Link>
         <button

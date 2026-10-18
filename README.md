@@ -1,3 +1,5 @@
+<p align="center"><img src="frontend/public/logo.svg" alt="PriceGrid logo" width="96" /></p>
+
 # PriceGrid
 
 > A market price intelligence API that tracks good prices across vendors and markets, flags price spikes in real time, and caches high-traffic reads.
@@ -137,6 +139,39 @@ uv sync
 ```
 
 > **Why uv?** Traditional `pip install -r requirements.txt` on a fresh clone can take 30–60 seconds. `uv sync` typically takes under 3 seconds for the same packages. In CI and Docker builds this adds up significantly.
+
+---
+
+## Seed Data & Test Accounts
+
+Load dummy data (users, goods, markets, vendors, 30 days of price history and a few spike alerts) so there is something to explore:
+
+```bash
+make migrate   # if you haven't already
+make seed
+```
+
+The script is idempotent: re-running it won't duplicate anything. To start over, run `make db-clear-data` and then `make seed`.
+
+All four accounts share the same password: **`password123`**
+
+| Email                   | Password      | Role     | Can do                                             |
+| ----------------------- | ------------- | -------- | -------------------------------------------------- |
+| `admin@pricegrid.dev`   | `password123` | `admin`  | Everything, including goods/markets and thresholds |
+| `vendor1@pricegrid.dev` | `password123` | `vendor` | Submit prices (as Mama Ngozi Provisions), read all |
+| `vendor2@pricegrid.dev` | `password123` | `vendor` | Submit prices (as Alhaji Bello Foods), read all    |
+| `viewer@pricegrid.dev`  | `password123` | `viewer` | Read-only                                          |
+
+> These accounts are for local development only. Never run the seed script against a production database.
+
+### Web dashboard
+
+A React dashboard lives in [`frontend/`](frontend/README.md). With the API running:
+
+```bash
+make web-install
+make web-dev      # http://localhost:5173
+```
 
 ---
 

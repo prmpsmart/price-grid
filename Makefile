@@ -176,7 +176,7 @@ reset: ## Full reset — wipe volumes, rebuild images, start fresh
 	$(COMPOSE) up -d
 
 seed: ## Run database seed script (if exists)
-	$(EXEC) python scripts/seed.py
+	$(EXEC) python -m scripts.seed
 
 # ── Cleanup ───────────────────────────────────────────────────────────────────
 clean: ## Remove Python cache files
