@@ -4,6 +4,7 @@
 	db-shell redis-shell \
 	lint lint-fix format format-check typecheck \
 	install add add-dev remove \
+	web-install web-dev web-build web-preview web-format web-format-check web-clean \
 	dev reset seed clean clean-all
 
 # ── Config ────────────────────────────────────────────────────────────────────
@@ -13,6 +14,7 @@ CACHE_SERVICE = pricegrid-cache
 COMPOSE = docker-compose
 COMPOSE_TEST = $(COMPOSE) --profile test
 EXEC = $(COMPOSE) exec $(API_SERVICE)
+WEB_DIR = frontend
 
 # ── Help ──────────────────────────────────────────────────────────────────────
 help: ## Show this help message
@@ -136,6 +138,29 @@ add-dev: ## [LOCAL] Add a dev-only dep and update lockfile (usage: make add-dev 
 remove: ## [LOCAL] Remove a dep and update lockfile (usage: make remove pkg=somepackage)
 	uv remove $(pkg)
 
+# ── Frontend (local only — runs on your host machine, not in Docker) ──────────
+# Dev server proxies /api to the API on :8000, so run `make up` first.
+web-install: ## [LOCAL] Install frontend dependencies
+	cd $(WEB_DIR) && npm install
+
+web-dev: ## [LOCAL] Start the frontend dev server (http://localhost:5173)
+	cd $(WEB_DIR) && npm run dev
+
+web-build: ## [LOCAL] Type-check and build the frontend into frontend/dist
+	cd $(WEB_DIR) && npm run build
+
+web-preview: ## [LOCAL] Serve the production frontend build locally
+	cd $(WEB_DIR) && npm run preview
+
+web-format: ## [LOCAL] Format frontend sources with prettier
+	cd $(WEB_DIR) && npm run prettier:fix
+
+web-format-check: ## [LOCAL] Check frontend formatting without applying changes
+	cd $(WEB_DIR) && npm run prettier
+
+web-clean: ## [LOCAL] Remove frontend build output and node_modules
+	rm -rf $(WEB_DIR)/dist $(WEB_DIR)/node_modules
+
 # ── Dev Shortcuts ─────────────────────────────────────────────────────────────
 dev: ## Start services, run migrations, follow API logs
 	$(COMPOSE) up -d $(DB_SERVICE) $(CACHE_SERVICE)
@@ -163,7 +188,7 @@ clean: ## Remove Python cache files
 	find . -type f -name ".coverage" -delete 2>/dev/null; \
 	echo "Cleaned."
 
-clean-all: down-v clean ## Stop services, wipe volumes, remove cache files
+clean-all: down-v clean web-clean ## Stop services, wipe volumes, remove cache files
 
 # ── Database Reset ────────────────────────────────────────────────────────────
 db-reset-migrations: ## Rollback migrations to base and upgrade back to head
