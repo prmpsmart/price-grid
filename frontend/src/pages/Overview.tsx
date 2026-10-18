@@ -36,7 +36,7 @@ export default function Overview() {
                 <th className="th">Good</th>
                 <th className="th">Market</th>
                 <th className="th text-right">Price</th>
-                <th className="th">Updated</th>
+                <th className="th hidden sm:table-cell">Updated</th>
               </tr>
             </thead>
             <tbody>
@@ -54,7 +54,7 @@ export default function Overview() {
                   <td className="td text-right font-mono">
                     {money(p.price, p.currency)}
                   </td>
-                  <td className="td text-forest-muted">
+                  <td className="td hidden text-forest-muted sm:table-cell">
                     {when(p.submitted_at)}
                   </td>
                 </tr>

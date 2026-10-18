@@ -173,6 +173,18 @@ make web-install
 make web-dev      # http://localhost:5173
 ```
 
+Screenshots below use the seeded data, signed in as `admin@pricegrid.dev`.
+
+| Overview | Compare |
+| :---: | :---: |
+| ![Overview](docs/screenshots/overview.png) | ![Compare](docs/screenshots/compare.png) |
+| **Trends** | **History** |
+| ![Trends](docs/screenshots/trends.png) | ![History](docs/screenshots/history.png) |
+| **Spike alerts** | **Submit price** |
+| ![Spike alerts](docs/screenshots/alerts.png) | ![Submit price](docs/screenshots/submit.png) |
+| **Catalog** | **Mobile** |
+| ![Catalog](docs/screenshots/catalog.png) | <img src="docs/screenshots/mobile-overview.png" alt="Mobile overview" width="220" /> |
+
 ---
 
 ## Environment Variables
